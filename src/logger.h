@@ -19,10 +19,10 @@ extern "C" {
 #define __FILENAME__ __FILE__
 #endif /* _WIN32 */
 
-#define LOG_DEBUG(fmt, ...) log_write(LogLevel_DEBUG, __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
-#define LOG_INFO(fmt, ...)  log_write(LogLevel_INFO , __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
-#define LOG_WARN(fmt, ...)  log_write(LogLevel_WARN , __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
-#define LOG_ERROR(fmt, ...) log_write(LogLevel_ERROR, __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
+#define LOG_DEBUG(fmt, ...) logger_log(LogLevel_DEBUG, __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
+#define LOG_INFO(fmt, ...)  logger_log(LogLevel_INFO , __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
+#define LOG_WARN(fmt, ...)  logger_log(LogLevel_WARN , __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
+#define LOG_ERROR(fmt, ...) logger_log(LogLevel_ERROR, __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
 
 typedef enum
 {
@@ -32,25 +32,43 @@ typedef enum
     LogLevel_ERROR,
 } LogLevel;
 
-static LogLevel currentlevel = LogLevel_INFO;
-static const char* logfilename = "";
-static int maxFileSize = 1048576; /* 1MB */
-static int maxBackupFiles = 5;
-static int currentFileSize;
-static FILE* logfile;
-
-static int file_exists(const char* filename)
+typedef enum
 {
-    FILE* fp;
-    if ((fp = fopen(filename, "r")) == NULL) {
+    LogStream_STDOUT,
+    LogStream_STDERR,
+    LogStream_FILE,
+} LogStream;
+
+int logger_init(LogLevel level, const char* filename);
+void logger_log(LogLevel level, const char* file, int line, const char* func, const char* fmt, ...);
+static long getFileSize(const char* filename);
+static int vflog(LogLevel level, FILE* fp, const char* file, int line, const char* func, const char* fmt, va_list arg);
+static void rotateLogFiles();
+static char* getBackupFileName(const char* basename, int index);
+static int isFileExists(const char* filename);
+
+static LogLevel s_logLevel = LogLevel_INFO;
+static LogStream s_logStream = LogStream_STDOUT;
+static const char* s_logFileName = "";
+static int s_maxFileSize = 1048576; /* 1MB */
+static int s_maxBackupFiles = 5;
+static int s_currentFileSize;
+static FILE* s_logFile;
+
+int logger_init(LogLevel level, const char* filename)
+{
+    s_logLevel = level;
+    s_logFileName = filename;
+    s_currentFileSize = getFileSize(filename);
+    s_logFile = fopen(filename, "a");
+    s_logStream = LogStream_FILE;
+    if (s_logFile == NULL) {
         return 0;
-    } else {
-        fclose(fp);
-        return 1;
     }
+    return 1;
 }
 
-static long file_size(const char* filename)
+static long getFileSize(const char* filename)
 {
     FILE* fp;
     long size;
@@ -64,7 +82,104 @@ static long file_size(const char* filename)
     return size;
 }
 
-static char* file_backupname(const char* basename, int index)
+void logger_log(LogLevel level, const char* file, int line, const char* func, const char* fmt, ...) {
+    va_list arg;
+
+    if (s_logLevel > level) {
+        return;
+    }
+
+    va_start(arg, fmt);
+    switch (s_logStream) {
+        case LogStream_STDOUT:
+            vflog(level, stdout, file, line, func, fmt, arg);
+            break;
+
+        case LogStream_STDERR:
+            vflog(level, stderr, file, line, func, fmt, arg);
+            break;
+
+        case LogStream_FILE:
+            rotateLogFiles();
+            s_currentFileSize += vflog(level, s_logFile, file, line, func, fmt, arg);
+            break;
+
+        default:
+            assert(0 && "Unknown LogStream");
+            break;
+    }
+    va_end(arg);
+}
+
+static int vflog(LogLevel level, FILE* fp, const char* file, int line, const char* func, const char* fmt, va_list arg)
+{
+    time_t now;
+    char timestr[20];
+    char* levelstr;
+    int size;
+    int totalsize = 0;
+
+    now = time(NULL);
+    strftime(timestr, sizeof(timestr), "%Y-%m-%d %T", localtime(&now));
+    switch (level) {
+        case LogLevel_DEBUG:
+            levelstr = "DEBUG";
+            break;
+        case LogLevel_INFO:
+            levelstr = "INFO ";
+            break;
+        case LogLevel_WARN:
+            levelstr = "WARN ";
+            break;
+        case LogLevel_ERROR:
+            levelstr = "ERROR ";
+            break;
+        default:
+            assert(0 && "Unknown LogLevel");
+            return 0;
+    }
+    if ((size = fprintf(fp, "%s %s %s:%d:%s: ", timestr, levelstr, file, line, func)) > 0) {
+        totalsize += size;
+    }
+    if ((size = vfprintf(fp, fmt, arg)) > 0) {
+        totalsize += size;
+    }
+    if ((size = fprintf(fp, "\n")) > 0) {
+        totalsize += size;
+    }
+    return totalsize;
+}
+
+static void rotateLogFiles()
+{
+    int i;
+    char* src;
+    char* dst;
+
+    if (s_currentFileSize < s_maxFileSize) {
+        return;
+    }
+    for (i = s_maxBackupFiles; i > 0; i--) {
+        src = getBackupFileName(s_logFileName, i - 1);
+        dst = getBackupFileName(s_logFileName, i);
+        if (src == NULL || dst == NULL) {
+            free(src);
+            free(dst);
+            continue;
+        }
+        remove(dst);
+        rename(src, dst);
+        free(src);
+        free(dst);
+    }
+    s_currentFileSize = getFileSize(s_logFileName);
+    fclose(s_logFile);
+    if ((s_logFile = fopen(s_logFileName, "a")) == NULL) {
+        return;
+    }
+}
+
+static char* getBackupFileName(const char* basename, int index)
 {
     assert(index >= 0 && index <= 999);
 
@@ -82,88 +197,16 @@ static char* file_backupname(const char* basename, int index)
     return backupname;
 }
 
-
-void log_init(LogLevel level, const char* filename)
+static int isFileExists(const char* filename)
 {
-    currentlevel = level;
-    logfilename = filename;
-    currentFileSize = file_size(logfilename);
-    if ((logfile = fopen(logfilename, "a")) == NULL) {
-        return;
-    }
-}
+    FILE* fp;
 
-void log_vfprintln(LogLevel level, FILE* fp, const char* file, int line, const char* func, const char* fmt, va_list arg)
-{
-    time_t now;
-    char timestr[20];
-    int size = 0;
-
-    now = time(NULL);
-    strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&now));
-    switch (level) {
-        case LogLevel_DEBUG:
-            size = fprintf(fp, "%s DEBUG %s:%d:%s: ", timestr, file, line, func);
-            break;
-        case LogLevel_INFO:
-            size = fprintf(fp, "%s INFO  %s:%d:%s: ", timestr, file, line, func);
-            break;
-        case LogLevel_WARN:
-            size = fprintf(fp, "%s WARN  %s:%d:%s: ", timestr, file, line, func);
-            break;
-        case LogLevel_ERROR:
-            size = fprintf(fp, "%s ERROR %s:%d:%s: ", timestr, file, line, func);
-            break;
-        default:
-            assert(0 && "Unknown LogLevel");
+    if ((fp = fopen(filename, "r")) == NULL) {
+        return 0;
+    } else {
+        fclose(fp);
+        return 1;
     }
-    if (size > 0) {
-        currentFileSize += size;
-    }
-    vfprintf(fp, fmt, arg);
-    fprintf(fp, "\n");
-}
-
-static void log_rotate()
-{
-    int i;
-    char* src;
-    char* dst;
-
-    if (currentFileSize < maxFileSize) {
-        return;
-    }
-    for (i = maxBackupFiles; i > 0; i--) {
-        src = file_backupname(logfilename, i - 1);
-        dst = file_backupname(logfilename, i);
-        if (src == NULL || dst == NULL) {
-            free(src);
-            free(dst);
-            continue;
-        }
-        remove(dst);
-        rename(src, dst);
-        free(src);
-        free(dst);
-    }
-    currentFileSize = file_size(logfilename);
-    fclose(logfile);
-    if ((logfile = fopen(logfilename, "a")) == NULL) {
-        return;
-    }
-}
-
-void log_write(LogLevel level, const char* file, int line, const char* func, const char* fmt, ...)
-{
-    va_list arg;
-
-    if (currentlevel > level) {
-        return;
-    }
-    log_rotate();
-    va_start(arg, fmt);
-    log_vfprintln(level, logfile, file, line, func, fmt, arg);
-    va_end(arg);
 }
 
 #ifdef __cplusplus
@@ -171,4 +214,3 @@ void log_write(LogLevel level, const char* file, int line, const char* func, con
 # endif /* __cplusplus */
 
 #endif /* LOGGER_H */
-
