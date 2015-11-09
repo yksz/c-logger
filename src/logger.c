@@ -18,7 +18,7 @@ static const int kFileLogger = 1;
 /* Base logger */
 static int s_logger;
 static LogLevel s_logLevel = LogLevel_INFO;
-static int s_initialized = 0;
+static int s_initialized = 0; /* false */
 #if defined(_WIN32) || defined(_WIN64)
  static CRITICAL_SECTION s_mutex;
 #else
@@ -42,7 +42,7 @@ static void init()
 #else
     pthread_mutex_init(&s_mutex, NULL);
 #endif /* _WIN32 || _WIN64 */
-    s_initialized = 1;
+    s_initialized = 1; /* true */
 }
 
 static void lock(void)
@@ -66,7 +66,11 @@ static void unlock(void)
 int logger_initAsConsoleLogger(FILE* fp)
 {
     if (s_initialized) {
-        assert(0 && "Logger is already initialized");
+        assert(0 && "Already initialized");
+        return 0;
+    }
+    if (fp == NULL) {
+        assert(0 && "fp must not be null");
         return 0;
     }
 
@@ -93,7 +97,11 @@ static long getFileSize(const char* filename)
 int logger_initAsFileLogger(const char* filename, int maxFileSize, unsigned char maxBackupFiles)
 {
     if (s_initialized) {
-        assert(0 && "Logger is already initialized");
+        assert(0 && "Already initialized");
+        return 0;
+    }
+    if (filename == NULL) {
+        assert(0 && "filename must not be null");
         return 0;
     }
 
@@ -230,7 +238,7 @@ void logger_log(LogLevel level, const char* file, int line, const char* func, co
 
     lock();
     if (!s_initialized) {
-        assert(0 && "Logger is not initialized");
+        assert(0 && "Not initialized");
         unlock();
         return;
     }
@@ -241,7 +249,6 @@ void logger_log(LogLevel level, const char* file, int line, const char* func, co
 
     va_start(arg, fmt);
     if (s_logger == kConsoleLogger) {
-        s_cl_stream = s_cl_stream != NULL ? s_cl_stream : stdout;
         vflog(level, s_cl_stream, file, line, func, fmt, arg);
     } else if (s_logger == kFileLogger) {
         if (rotateLogFiles()) {
