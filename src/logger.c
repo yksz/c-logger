@@ -4,14 +4,26 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#if defined(_WIN32) || defined(_WIN64)
+ #include <windows.h>
+#else
+ #include <pthread.h>
+#endif /* _WIN32 || _WIN64 */
+
 
 /* Logger type */
 static const int kConsoleLogger = 0;
 static const int kFileLogger = 1;
 
 /* Base logger */
-static int s_logger = 0; /* kConsoleLogger */
+static int s_logger;
 static LogLevel s_logLevel = LogLevel_INFO;
+static int s_initialized = 0;
+#if defined(_WIN32) || defined(_WIN64)
+ static CRITICAL_SECTION s_mutex;
+#else
+ static pthread_mutex_t s_mutex;
+#endif /* _WIN32 || _WIN64 */
 
 /* Console logger */
 static FILE* s_cl_stream;
@@ -23,10 +35,44 @@ static int s_fl_maxFileSize = 1048576; /* 1 MB */
 static unsigned char s_fl_maxBackupFiles;
 static int s_fl_currentFileSize;
 
-int logger_useConsoleLogger(FILE* fp)
+static void init()
 {
+#if defined(_WIN32) || defined(_WIN64)
+    InitializeCriticalSection(&s_mutex);
+#else
+    pthread_mutex_init(&s_mutex, NULL);
+#endif /* _WIN32 || _WIN64 */
+    s_initialized = 1;
+}
+
+static void lock(void)
+{
+#if defined(_WIN32) || defined(_WIN64)
+    EnterCriticalSection(&s_mutex);
+#else
+    pthread_mutex_lock(&s_mutex);
+#endif /* _WIN32 || _WIN64 */
+}
+
+static void unlock(void)
+{
+#if defined(_WIN32) || defined(_WIN64)
+    LeaveCriticalSection(&s_mutex);
+#else
+    pthread_mutex_unlock(&s_mutex);
+#endif /* _WIN32 || _WIN64 */
+}
+
+int logger_initAsConsoleLogger(FILE* fp)
+{
+    if (s_initialized) {
+        assert(0 && "Logger is already initialized");
+        return 0;
+    }
+
     s_cl_stream = fp;
     s_logger = kConsoleLogger;
+    init();
     return 1;
 }
 
@@ -44,26 +90,34 @@ static long getFileSize(const char* filename)
     return size;
 }
 
-int logger_useFileLogger(const char* filename, int maxFileSize, unsigned char maxBackupFiles)
+int logger_initAsFileLogger(const char* filename, int maxFileSize, unsigned char maxBackupFiles)
 {
-    s_fl_filename = filename;
-    if (maxFileSize > 0) {
-        s_fl_maxFileSize = maxFileSize;
+    if (s_initialized) {
+        assert(0 && "Logger is already initialized");
+        return 0;
     }
-    s_fl_maxBackupFiles = maxBackupFiles;
-    s_fl_currentFileSize = getFileSize(filename);
+
     s_fl_fp = fopen(filename, "a");
     if (s_fl_fp == NULL) {
         fprintf(stderr, "ERROR: Failed to open file: %s\n", filename);
         return 0;
     }
+    s_fl_currentFileSize = getFileSize(filename);
+    s_fl_filename = filename;
+    if (maxFileSize > 0) {
+        s_fl_maxFileSize = maxFileSize;
+    }
+    s_fl_maxBackupFiles = maxBackupFiles;
     s_logger = kFileLogger;
+    init();
     return 1;
 }
 
 void logger_setLogLevel(LogLevel level)
 {
+    lock();
     s_logLevel = level;
+    unlock();
 }
 
 static char* getBackupFileName(const char* basename, unsigned char index)
@@ -94,7 +148,7 @@ static int isFileExists(const char* filename)
     }
 }
 
-static int rotateLogFiles()
+static int rotateLogFiles(void)
 {
     unsigned char i;
     char *src, *dst;
@@ -122,12 +176,12 @@ static int rotateLogFiles()
         free(src);
         free(dst);
     }
-    s_fl_currentFileSize = getFileSize(s_fl_filename);
     s_fl_fp = fopen(s_fl_filename, "a");
     if (s_fl_fp == NULL) {
         fprintf(stderr, "ERROR: Failed to open file: %s\n", s_fl_filename);
         return 0;
     }
+    s_fl_currentFileSize = getFileSize(s_fl_filename);
     return 1;
 }
 
@@ -174,7 +228,14 @@ void logger_log(LogLevel level, const char* file, int line, const char* func, co
 {
     va_list arg;
 
+    lock();
+    if (!s_initialized) {
+        assert(0 && "Logger is not initialized");
+        unlock();
+        return;
+    }
     if (s_logLevel > level) {
+        unlock();
         return;
     }
 
@@ -190,4 +251,5 @@ void logger_log(LogLevel level, const char* file, int line, const char* func, co
         assert(0 && "Unknown logger");
     }
     va_end(arg);
+    unlock();
 }
