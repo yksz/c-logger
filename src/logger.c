@@ -202,7 +202,7 @@ static int vflog(LogLevel level, FILE* fp, const char* file, int line, const cha
     int totalsize = 0;
 
     now = time(NULL);
-    strftime(timestr, sizeof(timestr), "%Y-%m-%d %T", localtime(&now));
+    strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&now));
     switch (level) {
         case LogLevel_DEBUG:
             levelstr = "DEBUG";
