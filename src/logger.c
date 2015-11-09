@@ -70,8 +70,7 @@ int logger_initAsConsoleLogger(FILE* fp)
         return 0;
     }
     if (fp == NULL) {
-        assert(0 && "fp must not be null");
-        return 0;
+        fp = stdout;
     }
 
     s_cl_stream = fp;
@@ -144,6 +143,10 @@ static char* getBackupFileName(const char* basename, unsigned char index)
     return backupname;
 }
 
+/**
+ * @param[in] filename A file path string
+ * @return Non-zero value upon success or 0 on error
+ */
 static int isFileExists(const char* filename)
 {
     FILE* fp;
@@ -156,6 +159,9 @@ static int isFileExists(const char* filename)
     }
 }
 
+/**
+ * @return Non-zero value upon success or 0 on error
+ */
 static int rotateLogFiles(void)
 {
     unsigned char i;
@@ -193,6 +199,9 @@ static int rotateLogFiles(void)
     return 1;
 }
 
+/**
+ * @return The number of bytes written to the output stream
+ */
 static int vflog(LogLevel level, FILE* fp, const char* file, int line, const char* func, const char* fmt, va_list arg)
 {
     time_t now;
