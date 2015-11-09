@@ -51,6 +51,7 @@ int logger_initFileLogger(const char* filename, int maxFileSize, unsigned char m
 /**
  * Set the log level.
  * Message levels lower than this value will be discarded.
+ * The default log level is INFO.
  *
  * @param[in] level A log level
  */
