@@ -12,7 +12,12 @@ This library's main features:
 
 Installation
 ============
-
+```shell
+mkdir build
+cd build
+cmake ..
+make
+```
 
 Platforms
 =========
