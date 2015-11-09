@@ -17,5 +17,10 @@ add_library(${PROJECT_NAME}_static STATIC ${source_files})
 set_target_properties(${PROJECT_NAME}_static PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME}_static PROPERTIES PREFIX "lib")
 
+### Install
+file(GLOB header_files src/*.h)
+install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(FILES ${header_files} DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+
 ### Document
 add_custom_target(doc COMMAND "doxygen" "${PROJECT_SOURCE_DIR}/doc/Doxyfile")
