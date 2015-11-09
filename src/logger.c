@@ -9,7 +9,6 @@
  #include <pthread.h>
 #endif /* _WIN32 || _WIN64 */
 
-
 /* Logger type */
 static const int kConsoleLogger = 0;
 static const int kFileLogger = 1;
@@ -36,6 +35,9 @@ static int s_fl_currentFileSize;
 
 static void init()
 {
+    if (s_initialized) {
+        return;
+    }
 #if defined(_WIN32) || defined(_WIN64)
     InitializeCriticalSection(&s_mutex);
 #else
@@ -62,14 +64,12 @@ static void unlock(void)
 #endif /* _WIN32 || _WIN64 */
 }
 
-int logger_initAsConsoleLogger(FILE* fp)
+int logger_initConsoleLogger(FILE* fp)
 {
-    if (s_initialized) {
-        assert(0 && "Already initialized");
+    fp = fp != NULL ? fp : stdout;
+    if (fp != stdout && fp != stderr) {
+        assert(0 && "fp must be stdout or stderr");
         return 0;
-    }
-    if (fp == NULL) {
-        fp = stdout;
     }
 
     s_cl_stream = fp;
@@ -92,12 +92,8 @@ static long getFileSize(const char* filename)
     return size;
 }
 
-int logger_initAsFileLogger(const char* filename, int maxFileSize, unsigned char maxBackupFiles)
+int logger_initFileLogger(const char* filename, int maxFileSize, unsigned char maxBackupFiles)
 {
-    if (s_initialized) {
-        assert(0 && "Already initialized");
-        return 0;
-    }
     if (filename == NULL) {
         assert(0 && "filename must not be null");
         return 0;
@@ -121,9 +117,7 @@ int logger_initAsFileLogger(const char* filename, int maxFileSize, unsigned char
 
 void logger_setLogLevel(LogLevel level)
 {
-    lock();
     s_logLevel = level;
-    unlock();
 }
 
 static char* getBackupFileName(const char* basename, unsigned char index)
@@ -142,10 +136,6 @@ static char* getBackupFileName(const char* basename, unsigned char index)
     return backupname;
 }
 
-/**
- * @param[in] filename A file path string
- * @return Non-zero value upon success or 0 on error
- */
 static int isFileExists(const char* filename)
 {
     FILE* fp;
@@ -158,9 +148,6 @@ static int isFileExists(const char* filename)
     }
 }
 
-/**
- * @return Non-zero value upon success or 0 on error
- */
 static int rotateLogFiles(void)
 {
     unsigned char i;
@@ -198,9 +185,6 @@ static int rotateLogFiles(void)
     return 1;
 }
 
-/**
- * @return The number of bytes written to the output stream
- */
 static int vflog(LogLevel level, FILE* fp, const char* file, int line, const char* func, const char* fmt, va_list arg)
 {
     time_t now;

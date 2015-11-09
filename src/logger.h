@@ -30,33 +30,38 @@ typedef enum
 
 /**
  * Initialize the logger as a console logger.
- * Before starting a logging, make sure call this function.
  * If the file pointer is NULL, stdout will be used.
  *
- * @param[in] fp A file pointer. Set stdout or stderr.
+ * @param[in] fp A file pointer. Make sure to set stdout or stderr.
  * @return Non-zero value upon success or 0 on error
- * @see logger_initAsFileLogger()
  */
-int logger_initAsConsoleLogger(FILE* fp);
+int logger_initConsoleLogger(FILE* fp);
 
 /**
  * Initialize the logger as a file logger.
- * Before starting a logging, make sure call this function.
+ * If the filename is NULL, return without doing anything.
  *
  * @param[in] filename The name of the output file
  * @param[in] maxFileSize The maximum number of bytes to write to any one file
  * @param[in] maxBackupFiles The maximum number of files for backup
  * @return Non-zero value upon success or 0 on error
- * @see logger_initAsConsoleLogger()
  */
-int logger_initAsFileLogger(const char* filename, int maxFileSize, unsigned char maxBackupFiles);
+int logger_initFileLogger(const char* filename, int maxFileSize, unsigned char maxBackupFiles);
 
 /**
- * @param[in] level A new log level
+ * Set the log level.
+ * Message levels lower than this value will be discarded.
+ *
+ * @param[in] level A log level
  */
 void logger_setLogLevel(LogLevel level);
 
 /**
+ * Log a message.
+ * Make sure to call one of the following initialize functions before starting logging.
+ * - logger_initConsoleLogger()
+ * - logger_initFileLogger()
+ *
  * @param[in] level A log level
  * @param[in] file A file name string
  * @param[in] line A line number

@@ -3,7 +3,7 @@
 int main(void) {
     int count = 1000000;
 
-    logger_initAsFileLogger("logs/log.txt", 1024 * 1024 * 20, 3);
+    logger_initFileLogger("logs/log.txt", 1024 * 1024 * 20, 3);
     for (int i = 0; i < count; i++) {
         LOG_INFO("%d", i);
     }
