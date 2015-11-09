@@ -5,6 +5,8 @@
 extern "C" {
 # endif /* __cplusplus */
 
+#include <stdio.h>
+
 #ifdef _WIN32
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 #define __func__ __FUNCTION__
@@ -25,14 +27,9 @@ typedef enum
     LogLevel_ERROR,
 } LogLevel;
 
-typedef enum
-{
-    LogStream_STDOUT,
-    LogStream_STDERR,
-    LogStream_FILE,
-} LogStream;
-
-int logger_init(LogLevel level, const char* filename);
+int logger_useConsoleLogger(FILE* fp);
+int logger_useFileLogger(const char* filename, int maxFileSize, unsigned char maxBackupFiles);
+void logger_setLogLevel(LogLevel level);
 void logger_log(LogLevel level, const char* file, int line, const char* func, const char* fmt, ...);
 
 #ifdef __cplusplus
