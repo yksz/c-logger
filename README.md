@@ -12,6 +12,12 @@ This library's main features:
 
 Installation
 ============
+Download the header-only library:  
+* https://github.com/yksz/c-logger/releases
+* https://github.com/yksz/c-logger/releases/download/v0.1.0/logger.h
+
+or
+
 ```shell
 mkdir build
 cd build
@@ -19,11 +25,11 @@ cmake ..
 make
 ```
 
-Platforms
+Platforms (Confirmed)
 =========
 * Windows (Visual Studio 2008+)
-* Mac OS X
-* Linux
+* Mac OS X (clang ?)
+* Linux (gcc 4.8.4+)
 
 Example
 =======
