@@ -32,4 +32,5 @@
 *.dSYM/
 
 # Project
-build
+build/
+header-only/
