@@ -15,7 +15,7 @@ static const int kFileLogger = 1;
 
 /* Base logger */
 static int s_logger;
-static LogLevel s_logLevel = LogLevel_INFO;
+static enum LogLevel s_logLevel = LogLevel_INFO;
 static int s_initialized = 0; /* false */
 #if defined(_WIN32) || defined(_WIN64)
  static CRITICAL_SECTION s_mutex;
@@ -33,7 +33,7 @@ static int s_fl_maxFileSize = 1048576; /* 1 MB */
 static unsigned char s_fl_maxBackupFiles;
 static int s_fl_currentFileSize;
 
-static void init()
+static void init(void)
 {
     if (s_initialized) {
         return;
@@ -115,7 +115,7 @@ int logger_initFileLogger(const char* filename, int maxFileSize, unsigned char m
     return 1;
 }
 
-void logger_setLogLevel(LogLevel level)
+void logger_setLevel(enum LogLevel level)
 {
     s_logLevel = level;
 }
@@ -185,7 +185,7 @@ static int rotateLogFiles(void)
     return 1;
 }
 
-static int vflog(LogLevel level, FILE* fp, const char* file, int line, const char* func, const char* fmt, va_list arg)
+static int vflog(enum LogLevel level, FILE* fp, const char* file, int line, const char* func, const char* fmt, va_list arg)
 {
     time_t now;
     char timestr[20];
@@ -224,7 +224,7 @@ static int vflog(LogLevel level, FILE* fp, const char* file, int line, const cha
     return totalsize;
 }
 
-void logger_log(LogLevel level, const char* file, int line, const char* func, const char* fmt, ...)
+void logger_log(enum LogLevel level, const char* file, int line, const char* func, const char* fmt, ...)
 {
     va_list arg;
 

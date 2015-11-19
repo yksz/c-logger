@@ -20,13 +20,13 @@ extern "C" {
 #define LOG_WARN(fmt, ...)  logger_log(LogLevel_WARN , __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
 #define LOG_ERROR(fmt, ...) logger_log(LogLevel_ERROR, __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
 
-typedef enum
+enum LogLevel
 {
     LogLevel_DEBUG,
     LogLevel_INFO,
     LogLevel_WARN,
     LogLevel_ERROR,
-} LogLevel;
+};
 
 /**
  * Initialize the logger as a console logger.
@@ -55,7 +55,7 @@ int logger_initFileLogger(const char* filename, int maxFileSize, unsigned char m
  *
  * @param[in] level A log level
  */
-void logger_setLogLevel(LogLevel level);
+void logger_setLevel(enum LogLevel level);
 
 /**
  * Log a message.
@@ -70,7 +70,7 @@ void logger_setLogLevel(LogLevel level);
  * @param[in] fmt A format string
  * @param[in] ... Additional arguments
  */
-void logger_log(LogLevel level, const char* file, int line, const char* func, const char* fmt, ...);
+void logger_log(enum LogLevel level, const char* file, int line, const char* func, const char* fmt, ...);
 
 #ifdef __cplusplus
 } /* extern "C" */
