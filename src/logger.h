@@ -15,17 +15,21 @@ extern "C" {
  #define __FILENAME__ __FILE__
 #endif /* _WIN32 || _WIN64 */
 
+#define LOG_TRACE(fmt, ...) logger_log(LogLevel_TRACE, __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
 #define LOG_DEBUG(fmt, ...) logger_log(LogLevel_DEBUG, __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
 #define LOG_INFO(fmt, ...)  logger_log(LogLevel_INFO , __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
 #define LOG_WARN(fmt, ...)  logger_log(LogLevel_WARN , __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
 #define LOG_ERROR(fmt, ...) logger_log(LogLevel_ERROR, __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
+#define LOG_FATAL(fmt, ...) logger_log(LogLevel_FATAL, __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
 
 enum LogLevel
 {
+    LogLevel_TRACE,
     LogLevel_DEBUG,
     LogLevel_INFO,
     LogLevel_WARN,
     LogLevel_ERROR,
+    LogLevel_FATAL,
 };
 
 /**

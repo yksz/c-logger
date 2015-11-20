@@ -196,6 +196,9 @@ static int vflog(enum LogLevel level, FILE* fp, const char* file, int line, cons
     now = time(NULL);
     strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&now));
     switch (level) {
+        case LogLevel_TRACE:
+            levelstr = "TRACE";
+            break;
         case LogLevel_DEBUG:
             levelstr = "DEBUG";
             break;
@@ -206,7 +209,10 @@ static int vflog(enum LogLevel level, FILE* fp, const char* file, int line, cons
             levelstr = "WARN ";
             break;
         case LogLevel_ERROR:
-            levelstr = "ERROR ";
+            levelstr = "ERROR";
+            break;
+        case LogLevel_FATAL:
+            levelstr = "FATAL";
             break;
         default:
             assert(0 && "Unknown LogLevel");
