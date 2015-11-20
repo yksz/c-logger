@@ -50,7 +50,7 @@ int logger_initConsoleLogger(FILE* fp);
  * @param[in] maxBackupFiles The maximum number of files for backup
  * @return Non-zero value upon success or 0 on error
  */
-int logger_initFileLogger(const char* filename, int maxFileSize, unsigned char maxBackupFiles);
+int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char maxBackupFiles);
 
 /**
  * Set the log level.

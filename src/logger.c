@@ -29,9 +29,9 @@ static FILE* s_cl_stream;
 /* File logger */
 static const char* s_fl_filename;
 static FILE* s_fl_fp;
-static int s_fl_maxFileSize = 1048576; /* 1 MB */
+static long s_fl_maxFileSize = 1048576L; /* 1 MB */
 static unsigned char s_fl_maxBackupFiles;
-static int s_fl_currentFileSize;
+static long s_fl_currentFileSize;
 
 static void init(void)
 {
@@ -92,7 +92,7 @@ static long getFileSize(const char* filename)
     return size;
 }
 
-int logger_initFileLogger(const char* filename, int maxFileSize, unsigned char maxBackupFiles)
+int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char maxBackupFiles)
 {
     if (filename == NULL) {
         assert(0 && "filename must not be null");
@@ -185,13 +185,13 @@ static int rotateLogFiles(void)
     return 1;
 }
 
-static int vflog(enum LogLevel level, FILE* fp, const char* file, int line, const char* func, const char* fmt, va_list arg)
+static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, const char* func, const char* fmt, va_list arg)
 {
     time_t now;
     char timestr[20];
     const char* levelstr;
     int size;
-    int totalsize = 0;
+    long totalsize = 0;
 
     now = time(NULL);
     strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&now));
