@@ -66,7 +66,7 @@ static void unlock(void)
 
 int logger_initConsoleLogger(FILE* fp)
 {
-    fp = fp != NULL ? fp : stdout;
+    fp = (fp != NULL) ? fp : stdout;
     if (fp != stdout && fp != stderr) {
         assert(0 && "fp must be stdout or stderr");
         return 0;
@@ -101,7 +101,7 @@ int logger_initFileLogger(const char* filename, int maxFileSize, unsigned char m
 
     s_fl_fp = fopen(filename, "a");
     if (s_fl_fp == NULL) {
-        fprintf(stderr, "ERROR: Failed to open file: %s\n", filename);
+        fprintf(stderr, "ERROR: logger: Failed to open file: %s\n", filename);
         return 0;
     }
     s_fl_currentFileSize = getFileSize(filename);
@@ -125,7 +125,7 @@ static char* getBackupFileName(const char* basename, unsigned char index)
     int len = strlen(basename) + 5; /* <basename>.255\0 */
     char* backupname = (char*) malloc(sizeof(char) * len);
     if (backupname == NULL) {
-        fprintf(stderr, "ERROR: Out of memory\n");
+        fprintf(stderr, "ERROR: logger: Out of memory\n");
         return NULL;
     }
     if (index == 0) {
@@ -164,12 +164,12 @@ static int rotateLogFiles(void)
         if (src != NULL && dst != NULL) {
             if (isFileExists(dst)) {
                 if (remove(dst) != 0) {
-                    fprintf(stderr, "ERROR: Failed to remove file: %s\n", dst);
+                    fprintf(stderr, "ERROR: logger: Failed to remove file: %s\n", dst);
                 }
             }
             if (isFileExists(src)) {
                 if (rename(src, dst) != 0) {
-                    fprintf(stderr, "ERROR: Failed to rename file: %s -> %s\n", src, dst);
+                    fprintf(stderr, "ERROR: logger: Failed to rename file: %s -> %s\n", src, dst);
                 }
             }
         }
@@ -178,7 +178,7 @@ static int rotateLogFiles(void)
     }
     s_fl_fp = fopen(s_fl_filename, "a");
     if (s_fl_fp == NULL) {
-        fprintf(stderr, "ERROR: Failed to open file: %s\n", s_fl_filename);
+        fprintf(stderr, "ERROR: logger: Failed to open file: %s\n", s_fl_filename);
         return 0;
     }
     s_fl_currentFileSize = getFileSize(s_fl_filename);
