@@ -4,9 +4,10 @@
 #include <stdlib.h>
 #include <time.h>
 #if defined(_WIN32) || defined(_WIN64)
- #include <windows.h>
+#include <winsock2.h>
 #else
- #include <pthread.h>
+#include <pthread.h>
+#include <sys/time.h>
 #endif /* _WIN32 || _WIN64 */
 
 /* Logger type */
@@ -18,9 +19,9 @@ static int s_logger;
 static enum LogLevel s_logLevel = LogLevel_INFO;
 static int s_initialized = 0; /* false */
 #if defined(_WIN32) || defined(_WIN64)
- static CRITICAL_SECTION s_mutex;
+static CRITICAL_SECTION s_mutex;
 #else
- static pthread_mutex_t s_mutex;
+static pthread_mutex_t s_mutex;
 #endif /* _WIN32 || _WIN64 */
 
 /* Console logger */
@@ -64,6 +65,27 @@ static void unlock(void)
 #endif /* _WIN32 || _WIN64 */
 }
 
+#if defined(_WIN32) || defined(_WIN64)
+static int gettimeofday(struct timeval* tv, void* tz)
+{
+    const UINT64 epochFileTime = 116444736000000000ULL;
+    FILETIME ft;
+    ULARGE_INTEGER li;
+    UINT64 t;
+
+    if (tv == NULL) {
+        return -1;
+    }
+    GetSystemTimeAsFileTime(&ft);
+    li.LowPart = ft.dwLowDateTime;
+    li.HighPart = ft.dwHighDateTime;
+    t = (li.QuadPart - epochFileTime) / 10;
+    tv->tv_sec = t / 1000000;
+    tv->tv_usec = t % 1000000;
+    return 0;
+}
+#endif /* _WIN32 || _WIN64 */
+
 int logger_initConsoleLogger(FILE* fp)
 {
     fp = (fp != NULL) ? fp : stdout;
@@ -99,6 +121,9 @@ int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char 
         return 0;
     }
 
+    if (s_fl_fp != NULL) { /* reinit */
+        fclose(s_fl_fp);
+    }
     s_fl_fp = fopen(filename, "a");
     if (s_fl_fp == NULL) {
         fprintf(stderr, "ERROR: logger: Failed to open file: %s\n", filename);
@@ -187,14 +212,17 @@ static int rotateLogFiles(void)
 
 static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, const char* func, const char* fmt, va_list arg)
 {
+    struct timeval tv;
     time_t now;
-    char timestr[20];
+    char timestr[32];
     const char* levelstr;
     int size;
     long totalsize = 0;
 
-    now = time(NULL);
+    gettimeofday(&tv, NULL);
+    now = tv.tv_sec;
     strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&now));
+    sprintf(timestr, "%s.%06ld", timestr, tv.tv_usec);
     switch (level) {
         case LogLevel_TRACE:
             levelstr = "TRACE";

@@ -3,16 +3,16 @@
 
 #ifdef __cplusplus
 extern "C" {
-# endif /* __cplusplus */
+#endif /* __cplusplus */
 
 #include <stdio.h>
 #include <string.h>
 
 #if defined(_WIN32) || defined(_WIN64)
- #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
- #define __func__ __FUNCTION__
+#define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+#define __func__ __FUNCTION__
 #else
- #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #endif /* _WIN32 || _WIN64 */
 
 #define LOG_TRACE(fmt, ...) logger_log(LogLevel_TRACE, __FILENAME__, __LINE__, __func__, fmt, ## __VA_ARGS__)
@@ -78,6 +78,6 @@ void logger_log(enum LogLevel level, const char* file, int line, const char* fun
 
 #ifdef __cplusplus
 } /* extern "C" */
-# endif /* __cplusplus */
+#endif /* __cplusplus */
 
 #endif /* LOGGER_H */
