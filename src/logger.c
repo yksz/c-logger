@@ -4,11 +4,11 @@
 #include <stdlib.h>
 #include <time.h>
 #if defined(_WIN32) || defined(_WIN64)
-#include <winsock2.h>
+ #include <winsock2.h>
 #else
-#include <pthread.h>
-#include <sys/time.h>
-#endif /* _WIN32 || _WIN64 */
+ #include <pthread.h>
+ #include <sys/time.h>
+#endif /* defined(_WIN32) || defined(_WIN64) */
 
 /* Logger type */
 static const int kConsoleLogger = 0;
@@ -22,7 +22,7 @@ static int s_initialized = 0; /* false */
 static CRITICAL_SECTION s_mutex;
 #else
 static pthread_mutex_t s_mutex;
-#endif /* _WIN32 || _WIN64 */
+#endif /* defined(_WIN32) || defined(_WIN64) */
 
 /* Console logger */
 static FILE* s_cl_stream;
@@ -43,7 +43,7 @@ static void init(void)
     InitializeCriticalSection(&s_mutex);
 #else
     pthread_mutex_init(&s_mutex, NULL);
-#endif /* _WIN32 || _WIN64 */
+#endif /* defined(_WIN32) || defined(_WIN64) */
     s_initialized = 1; /* true */
 }
 
@@ -53,7 +53,7 @@ static void lock(void)
     EnterCriticalSection(&s_mutex);
 #else
     pthread_mutex_lock(&s_mutex);
-#endif /* _WIN32 || _WIN64 */
+#endif /* defined(_WIN32) || defined(_WIN64) */
 }
 
 static void unlock(void)
@@ -62,7 +62,7 @@ static void unlock(void)
     LeaveCriticalSection(&s_mutex);
 #else
     pthread_mutex_unlock(&s_mutex);
-#endif /* _WIN32 || _WIN64 */
+#endif /* defined(_WIN32) || defined(_WIN64) */
 }
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -84,7 +84,7 @@ static int gettimeofday(struct timeval* tv, void* tz)
     tv->tv_usec = t % 1000000;
     return 0;
 }
-#endif /* _WIN32 || _WIN64 */
+#endif /* defined(_WIN32) || defined(_WIN64) */
 
 int logger_initConsoleLogger(FILE* fp)
 {
@@ -181,7 +181,6 @@ static int rotateLogFiles(void)
     if (s_fl_currentFileSize < s_fl_maxFileSize) {
         return s_fl_fp != NULL;
     }
-
     fclose(s_fl_fp);
     for (i = s_fl_maxBackupFiles; i > 0; i--) {
         src = getBackupFileName(s_fl_filename, i - 1);
@@ -222,7 +221,7 @@ static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, con
     gettimeofday(&tv, NULL);
     now = tv.tv_sec;
     strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&now));
-    sprintf(timestr, "%s.%06ld", timestr, tv.tv_usec);
+    sprintf(timestr, "%s.%06ld", timestr, (long) tv.tv_usec);
     switch (level) {
         case LogLevel_TRACE:
             levelstr = "TRACE";
@@ -272,7 +271,6 @@ void logger_log(enum LogLevel level, const char* file, int line, const char* fun
         unlock();
         return;
     }
-
     va_start(arg, fmt);
     if (s_logger == kConsoleLogger) {
         vflog(level, s_cl_stream, file, line, func, fmt, arg);

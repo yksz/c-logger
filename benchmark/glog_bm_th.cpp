@@ -6,9 +6,9 @@
 static const int kLoggingCount = 1000000;
 
 int main(int argc, char** argv) {
-    int numThreads = 10;
+    int nThreads = 10;
     if (argc > 1) {
-        numThreads = atoi(argv[1]);
+        nThreads = atoi(argv[1]);
     }
 
     FLAGS_logtostderr = 0;
@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
 
     std::atomic<int> count(0);
     std::vector<std::thread> threads;
-    for (int i = 0; i < numThreads; i++) {
+    for (int i = 0; i < nThreads; i++) {
         threads.push_back(std::thread([&]() {
             while (count < kLoggingCount) {
                 LOG(INFO) << count++;
