@@ -8,6 +8,10 @@
 #else
  #include <pthread.h>
  #include <sys/time.h>
+ #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
+  #include <sys/syscall.h>
+  #include <unistd.h>
+ #endif /* defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) */
 #endif /* defined(_WIN32) || defined(_WIN64) */
 
 /* Logger type */
@@ -85,6 +89,19 @@ static int gettimeofday(struct timeval* tv, void* tz)
     return 0;
 }
 #endif /* defined(_WIN32) || defined(_WIN64) */
+
+static long getCurrentThreadID()
+{
+#if defined(_WIN32) || defined(_WIN64)
+    return GetCurrentThreadId();
+#elif __linux__
+    return syscall(SYS_gettid);
+#elif defined(__APPLE__) && defined(__MACH__)
+    return syscall(SYS_thread_selfid);
+#else
+    return (long) pthread_self();
+#endif /* defined(_WIN32) || defined(_WIN64) */
+}
 
 int logger_initConsoleLogger(FILE* fp)
 {
@@ -245,7 +262,7 @@ static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, con
             assert(0 && "Unknown LogLevel");
             return 0;
     }
-    if ((size = fprintf(fp, "%s %s %s:%d:%s: ", timestr, levelstr, file, line, func)) > 0) {
+    if ((size = fprintf(fp, "%s %s %ld %s:%d:%s: ", timestr, levelstr, getCurrentThreadID(), file, line, func)) > 0) {
         totalsize += size;
     }
     if ((size = vfprintf(fp, fmt, arg)) > 0) {
