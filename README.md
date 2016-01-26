@@ -3,7 +3,7 @@ What is this?
 This is a simple logging library for C/C++.
 
 This library's main features:
-* Lightweight - only 300-line source code
+* Lightweight - only 400-line source code
 * C89 support
 * Thread-safe
 * 2 logging types:
@@ -34,13 +34,19 @@ This following table comparing other libraries is benchmark results to log 1,000
 
 | threads  | c-logger | glog     |
 |:---------|---------:|---------:|
-| 1        | 1.687s   | 1.822s   |
-| 10       | 3.022s   | 1.981s   |
+| 1        | 2.047s   | 1.822s   |
+| 10       | 3.340s   | 1.981s   |
 
 **Benchmark environment**
 * Processor: Intel Core i3-4170 CPU @ 3.70GHz
 * Memory: 4.0GB
 * OS: Ubuntu 14.04 32bit
+
+Log format
+==========
+```
+yyyy-MM-dd hh:mm:ss:uuuuuu level threadid file:line:func: msg
+```
 
 Example
 =======
@@ -59,11 +65,10 @@ LOG_INFO("file logging");
 LOG_DEBUG("format example: %d%c%s", 1, '2', "3");
 ```
 
-The output of the logger is as following:
-
+The output of the logger is the following:
 ```
-2015-11-10 00:00:01 INFO  filelogger.c:6:main: file logging
-2015-11-10 00:00:01 DEBUG filelogger.c:7:main: format example: 123
+2015-11-10 00:32:43.771455 INFO  2854 filelogger.c:6:main: file logger
+2015-11-10 00:32:43.771564 DEBUG 2854 filelogger.c:7:main: format example: 123
 ```
 
 License
