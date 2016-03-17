@@ -162,6 +162,11 @@ void logger_setLevel(enum LogLevel level)
     s_logLevel = level;
 }
 
+enum LogLevel logger_getLevel(void)
+{
+    return s_logLevel;
+}
+
 static char* getBackupFileName(const char* basename, unsigned char index)
 {
     int len = strlen(basename) + 5; /* <basename>.255\0 */

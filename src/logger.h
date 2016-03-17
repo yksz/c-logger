@@ -62,6 +62,14 @@ int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char 
 void logger_setLevel(enum LogLevel level);
 
 /**
+ * Get the log level that has been set.
+ * The default log level is INFO.
+ *
+ * @return The log level
+ */
+enum LogLevel logger_getLevel(void);
+
+/**
  * Log a message.
  * Make sure to call one of the following initialize functions before starting logging.
  * - logger_initConsoleLogger()
