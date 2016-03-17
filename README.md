@@ -45,7 +45,7 @@ This following table comparing other libraries is benchmark results to log 1,000
 Log format
 ==========
 ```
-yyyy-MM-dd hh:mm:ss:uuuuuu level threadid file:line:func: msg
+level yy-MM-dd hh:mm:ss:uuuuuu threadid file:line: message
 ```
 
 Example
@@ -67,8 +67,8 @@ LOG_DEBUG("format example: %d%c%s", 1, '2', "3");
 
 The output of the logger is the following:
 ```
-2015-11-10 00:32:43.771455 INFO  2854 filelogger.c:6:main: file logger
-2015-11-10 00:32:43.771564 DEBUG 2854 filelogger.c:7:main: format example: 123
+I 15-11-10 00:32:43.771455 2854 filelogger.c:6: file logger
+D 15-11-10 00:32:43.771564 2854 filelogger.c:7: format example: 123
 ```
 
 License

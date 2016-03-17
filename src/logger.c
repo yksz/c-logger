@@ -231,43 +231,43 @@ static int rotateLogFiles(void)
     return 1;
 }
 
-static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, const char* func, const char* fmt, va_list arg)
+static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, const char* fmt, va_list arg)
 {
     struct timeval tv;
     time_t now;
+    char levelc;
     char timestr[32];
-    const char* levelstr;
     int size;
     long totalsize = 0;
 
-    gettimeofday(&tv, NULL);
-    now = tv.tv_sec;
-    strftime(timestr, sizeof(timestr), "%Y-%m-%d %H:%M:%S", localtime(&now));
-    sprintf(timestr, "%s.%06ld", timestr, (long) tv.tv_usec);
     switch (level) {
         case LogLevel_TRACE:
-            levelstr = "TRACE";
+            levelc = 'T';
             break;
         case LogLevel_DEBUG:
-            levelstr = "DEBUG";
+            levelc = 'D';
             break;
         case LogLevel_INFO:
-            levelstr = "INFO ";
+            levelc = 'I';
             break;
         case LogLevel_WARN:
-            levelstr = "WARN ";
+            levelc = 'W';
             break;
         case LogLevel_ERROR:
-            levelstr = "ERROR";
+            levelc = 'E';
             break;
         case LogLevel_FATAL:
-            levelstr = "FATAL";
+            levelc = 'F';
             break;
         default:
             assert(0 && "Unknown LogLevel");
             return 0;
     }
-    if ((size = fprintf(fp, "%s %s %ld %s:%d:%s: ", timestr, levelstr, getCurrentThreadID(), file, line, func)) > 0) {
+    gettimeofday(&tv, NULL);
+    now = tv.tv_sec;
+    strftime(timestr, sizeof(timestr), "%y-%m-%d %H:%M:%S", localtime(&now));
+    sprintf(timestr, "%s.%06ld", timestr, (long) tv.tv_usec);
+    if ((size = fprintf(fp, "%c %s %ld %s:%d: ", levelc, timestr, getCurrentThreadID(), file, line)) > 0) {
         totalsize += size;
     }
     if ((size = vfprintf(fp, fmt, arg)) > 0) {
@@ -279,7 +279,7 @@ static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, con
     return totalsize;
 }
 
-void logger_log(enum LogLevel level, const char* file, int line, const char* func, const char* fmt, ...)
+void logger_log(enum LogLevel level, const char* file, int line, const char* fmt, ...)
 {
     va_list arg;
 
@@ -295,10 +295,10 @@ void logger_log(enum LogLevel level, const char* file, int line, const char* fun
     }
     va_start(arg, fmt);
     if (s_logger == kConsoleLogger) {
-        vflog(level, s_cl_stream, file, line, func, fmt, arg);
+        vflog(level, s_cl_stream, file, line, fmt, arg);
     } else if (s_logger == kFileLogger) {
         if (rotateLogFiles()) {
-            s_fl_currentFileSize += vflog(level, s_fl_fp, file, line, func, fmt, arg);
+            s_fl_currentFileSize += vflog(level, s_fl_fp, file, line, fmt, arg);
         }
     } else {
         assert(0 && "Unknown logger");
