@@ -35,10 +35,10 @@ enum LogLevel
  * Initialize the logger as a console logger.
  * If the file pointer is NULL, stdout will be used.
  *
- * @param[in] fp A file pointer. Make sure to set stdout or stderr.
+ * @param[in] output A file pointer. Make sure to set stdout or stderr.
  * @return Non-zero value upon success or 0 on error
  */
-int logger_initConsoleLogger(FILE* fp);
+int logger_initConsoleLogger(FILE* output);
 
 /**
  * Initialize the logger as a file logger.

@@ -14,11 +14,33 @@
  #endif /* defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) */
 #endif /* defined(_WIN32) || defined(_WIN64) */
 
-/* Logger type */
-static const int kConsoleLogger = 0;
-static const int kFileLogger = 1;
+enum
+{
+    /* Logger type */
+    kConsoleLogger = 1,
+    kFileLogger = 2,
 
-/* Base logger */
+    kDefaultMaxFileSize = 1048576L, /* 1 MB */
+};
+
+/* Console logger */
+static struct
+{
+    FILE* output;
+}
+s_clog;
+
+/* File logger */
+static struct
+{
+    const char* filename;
+    FILE* fp;
+    long maxFileSize;
+    unsigned char maxBackupFiles;
+    long currentFileSize;
+}
+s_flog;
+
 static int s_logger;
 static enum LogLevel s_logLevel = LogLevel_INFO;
 static int s_initialized = 0; /* false */
@@ -27,16 +49,6 @@ static CRITICAL_SECTION s_mutex;
 #else
 static pthread_mutex_t s_mutex;
 #endif /* defined(_WIN32) || defined(_WIN64) */
-
-/* Console logger */
-static FILE* s_cl_stream;
-
-/* File logger */
-static const char* s_fl_filename;
-static FILE* s_fl_fp;
-static long s_fl_maxFileSize = 1048576L; /* 1 MB */
-static unsigned char s_fl_maxBackupFiles;
-static long s_fl_currentFileSize;
 
 static void init(void)
 {
@@ -103,15 +115,15 @@ static long getCurrentThreadID()
 #endif /* defined(_WIN32) || defined(_WIN64) */
 }
 
-int logger_initConsoleLogger(FILE* fp)
+int logger_initConsoleLogger(FILE* output)
 {
-    fp = (fp != NULL) ? fp : stdout;
-    if (fp != stdout && fp != stderr) {
-        assert(0 && "fp must be stdout or stderr");
+    output = (output != NULL) ? output : stdout;
+    if (output != stdout && output != stderr) {
+        assert(0 && "output must be stdout or stderr");
         return 0;
     }
 
-    s_cl_stream = fp;
+    s_clog.output = output;
     s_logger = kConsoleLogger;
     init();
     return 1;
@@ -138,20 +150,18 @@ int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char 
         return 0;
     }
 
-    if (s_fl_fp != NULL) { /* reinit */
-        fclose(s_fl_fp);
+    if (s_flog.fp != NULL) { /* reinit */
+        fclose(s_flog.fp);
     }
-    s_fl_fp = fopen(filename, "a");
-    if (s_fl_fp == NULL) {
+    s_flog.fp = fopen(filename, "a");
+    if (s_flog.fp == NULL) {
         fprintf(stderr, "ERROR: logger: Failed to open file: %s\n", filename);
         return 0;
     }
-    s_fl_currentFileSize = getFileSize(filename);
-    s_fl_filename = filename;
-    if (maxFileSize > 0) {
-        s_fl_maxFileSize = maxFileSize;
-    }
-    s_fl_maxBackupFiles = maxBackupFiles;
+    s_flog.currentFileSize = getFileSize(filename);
+    s_flog.filename = filename;
+    s_flog.maxFileSize = (maxFileSize > 0) ? maxFileSize : kDefaultMaxFileSize;
+    s_flog.maxBackupFiles = maxBackupFiles;
     s_logger = kFileLogger;
     init();
     return 1;
@@ -200,13 +210,13 @@ static int rotateLogFiles(void)
     unsigned char i;
     char *src, *dst;
 
-    if (s_fl_currentFileSize < s_fl_maxFileSize) {
-        return s_fl_fp != NULL;
+    if (s_flog.currentFileSize < s_flog.maxFileSize) {
+        return s_flog.fp != NULL;
     }
-    fclose(s_fl_fp);
-    for (i = s_fl_maxBackupFiles; i > 0; i--) {
-        src = getBackupFileName(s_fl_filename, i - 1);
-        dst = getBackupFileName(s_fl_filename, i);
+    fclose(s_flog.fp);
+    for (i = s_flog.maxBackupFiles; i > 0; i--) {
+        src = getBackupFileName(s_flog.filename, i - 1);
+        dst = getBackupFileName(s_flog.filename, i);
         if (src != NULL && dst != NULL) {
             if (isFileExists(dst)) {
                 if (remove(dst) != 0) {
@@ -222,12 +232,12 @@ static int rotateLogFiles(void)
         free(src);
         free(dst);
     }
-    s_fl_fp = fopen(s_fl_filename, "a");
-    if (s_fl_fp == NULL) {
-        fprintf(stderr, "ERROR: logger: Failed to open file: %s\n", s_fl_filename);
+    s_flog.fp = fopen(s_flog.filename, "a");
+    if (s_flog.fp == NULL) {
+        fprintf(stderr, "ERROR: logger: Failed to open file: %s\n", s_flog.filename);
         return 0;
     }
-    s_fl_currentFileSize = getFileSize(s_fl_filename);
+    s_flog.currentFileSize = getFileSize(s_flog.filename);
     return 1;
 }
 
@@ -286,23 +296,25 @@ void logger_log(enum LogLevel level, const char* file, int line, const char* fmt
     lock();
     if (!s_initialized) {
         assert(0 && "Not initialized");
-        unlock();
-        return;
+        goto cleanup;
     }
     if (s_logLevel > level) {
-        unlock();
-        return;
+        goto cleanup;
     }
     va_start(arg, fmt);
-    if (s_logger == kConsoleLogger) {
-        vflog(level, s_cl_stream, file, line, fmt, arg);
-    } else if (s_logger == kFileLogger) {
-        if (rotateLogFiles()) {
-            s_fl_currentFileSize += vflog(level, s_fl_fp, file, line, fmt, arg);
-        }
-    } else {
-        assert(0 && "Unknown logger");
+    switch (s_logger) {
+        case kConsoleLogger:
+            vflog(level, s_clog.output, file, line, fmt, arg);
+            break;
+        case kFileLogger:
+            if (rotateLogFiles()) {
+                s_flog.currentFileSize += vflog(level, s_flog.fp, file, line, fmt, arg);
+            }
+            break;
+        default:
+            assert(0 && "Unknown logger");
     }
     va_end(arg);
+cleanup:
     unlock();
 }
