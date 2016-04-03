@@ -286,6 +286,7 @@ static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, con
     if ((size = fprintf(fp, "\n")) > 0) {
         totalsize += size;
     }
+    fflush(fp);
     return totalsize;
 }
 
