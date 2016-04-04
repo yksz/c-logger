@@ -20,6 +20,7 @@ enum
     kConsoleLogger = 1,
     kFileLogger = 2,
 
+    kFlushInterval = 10000, /* 1-999999 usec */
     kMaxFileNameLen = 256,
     kDefaultMaxFileSize = 1048576L, /* 1 MB */
 };
@@ -44,6 +45,7 @@ s_flog;
 
 static int s_logger;
 static enum LogLevel s_logLevel = LogLevel_INFO;
+static struct timeval s_flushtime;
 static int s_initialized = 0; /* false */
 #if defined(_WIN32) || defined(_WIN64)
 static CRITICAL_SECTION s_mutex;
@@ -244,8 +246,7 @@ static int rotateLogFiles(void)
 
 static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, const char* fmt, va_list arg)
 {
-    struct timeval tv;
-    time_t now;
+    struct timeval now;
     char levelc;
     char timestr[32];
     int size;
@@ -274,10 +275,9 @@ static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, con
             assert(0 && "Unknown LogLevel");
             return 0;
     }
-    gettimeofday(&tv, NULL);
-    now = tv.tv_sec;
-    strftime(timestr, sizeof(timestr), "%y-%m-%d %H:%M:%S", localtime(&now));
-    sprintf(timestr, "%s.%06ld", timestr, (long) tv.tv_usec);
+    gettimeofday(&now, NULL);
+    strftime(timestr, sizeof(timestr), "%y-%m-%d %H:%M:%S", localtime(&(now.tv_sec)));
+    sprintf(timestr, "%s.%06ld", timestr, (long) now.tv_usec);
     if ((size = fprintf(fp, "%c %s %ld %s:%d: ", levelc, timestr, getCurrentThreadID(), file, line)) > 0) {
         totalsize += size;
     }
@@ -287,7 +287,11 @@ static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, con
     if ((size = fprintf(fp, "\n")) > 0) {
         totalsize += size;
     }
-    fflush(fp);
+    if (now.tv_sec - s_flushtime.tv_sec >= 1 || now.tv_usec - s_flushtime.tv_usec > kFlushInterval) {
+        fflush(fp);
+        s_flushtime.tv_sec = now.tv_sec;
+        s_flushtime.tv_usec = now.tv_usec;
+    }
     return totalsize;
 }
 
