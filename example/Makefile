@@ -1,9 +1,12 @@
 CC = gcc
 CFLAGS = -Wall -std=c89 -I../src
 
-binaries = consolelogger.exe filelogger.exe
+binaries = conf.exe consolelogger.exe filelogger.exe
 
 all: $(binaries)
+
+conf.exe: conf.c ../src/logger.c ../src/loggerconf.c
+	$(CC) -o $@ $^ $(CFLAGS)
 
 consolelogger.exe: consolelogger.c ../src/logger.c
 	$(CC) -o $@ $^ $(CFLAGS)
