@@ -182,7 +182,7 @@ enum LogLevel logger_getLevel(void)
 
 static char* getBackupFileName(const char* basename, unsigned char index)
 {
-    int len = strlen(basename) + 5; /* <basename>.255\0 */
+    int len = strlen(basename) + 4; /* <basename>.255 */
     char* backupname = (char*) malloc(sizeof(char) * len);
     if (backupname == NULL) {
         fprintf(stderr, "ERROR: logger: Out of memory\n");
