@@ -8,6 +8,7 @@ set(CMAKE_C_FLAGS_DEBUG "-g")
 ### Library
 set(source_files
     src/logger.c
+    src/loggerconf.c
 )
 include_directories(
     ${PROJECT_SOURCE_DIR}/src
