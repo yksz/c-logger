@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.7)
 project(logger C)
 
 set(CMAKE_C_FLAGS "-Wall -std=c89")
+set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG")
 set(CMAKE_C_FLAGS_DEBUG "-g")
 
 ### Library
