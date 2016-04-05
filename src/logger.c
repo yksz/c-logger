@@ -20,9 +20,9 @@ enum
     kConsoleLogger = 1,
     kFileLogger = 2,
 
-    kFlushInterval = 10000, /* 1-999999 usec */
     kMaxFileNameLen = 256,
     kDefaultMaxFileSize = 1048576L, /* 1 MB */
+    kFlushInterval = 10000, /* 1-999999 usec */
 };
 
 /* Console logger */
@@ -99,7 +99,7 @@ static int gettimeofday(struct timeval* tv, void* tz)
     li.LowPart = ft.dwLowDateTime;
     li.HighPart = ft.dwHighDateTime;
     t = (li.QuadPart - epochFileTime) / 10;
-    tv->tv_sec = t / 1000000;
+    tv->tv_sec = (long) (t / 1000000);
     tv->tv_usec = t % 1000000;
     return 0;
 }
@@ -158,7 +158,7 @@ int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char 
     }
     s_flog.fp = fopen(filename, "a");
     if (s_flog.fp == NULL) {
-        fprintf(stderr, "ERROR: logger: Failed to open file: %s\n", filename);
+        fprintf(stderr, "ERROR: logger: Failed to open file: `%s`\n", filename);
         return 0;
     }
     s_flog.currentFileSize = getFileSize(filename);
@@ -196,7 +196,7 @@ static char* getBackupFileName(const char* basename, unsigned char index)
     return backupname;
 }
 
-static int isFileExists(const char* filename)
+static int isFileExist(const char* filename)
 {
     FILE* fp;
 
@@ -221,14 +221,14 @@ static int rotateLogFiles(void)
         src = getBackupFileName(s_flog.filename, i - 1);
         dst = getBackupFileName(s_flog.filename, i);
         if (src != NULL && dst != NULL) {
-            if (isFileExists(dst)) {
+            if (isFileExist(dst)) {
                 if (remove(dst) != 0) {
-                    fprintf(stderr, "ERROR: logger: Failed to remove file: %s\n", dst);
+                    fprintf(stderr, "ERROR: logger: Failed to remove file: `%s`\n", dst);
                 }
             }
-            if (isFileExists(src)) {
+            if (isFileExist(src)) {
                 if (rename(src, dst) != 0) {
-                    fprintf(stderr, "ERROR: logger: Failed to rename file: %s -> %s\n", src, dst);
+                    fprintf(stderr, "ERROR: logger: Failed to rename file: `%s` -> `%s`\n", src, dst);
                 }
             }
         }
@@ -237,7 +237,7 @@ static int rotateLogFiles(void)
     }
     s_flog.fp = fopen(s_flog.filename, "a");
     if (s_flog.fp == NULL) {
-        fprintf(stderr, "ERROR: logger: Failed to open file: %s\n", s_flog.filename);
+        fprintf(stderr, "ERROR: logger: Failed to open file: `%s`\n", s_flog.filename);
         return 0;
     }
     s_flog.currentFileSize = getFileSize(s_flog.filename);
@@ -299,11 +299,12 @@ void logger_log(enum LogLevel level, const char* file, int line, const char* fmt
 {
     va_list arg;
 
-    lock();
     if (!s_initialized) {
         assert(0 && "Not initialized");
-        goto cleanup;
+        return;
     }
+
+    lock();
     if (s_logLevel > level) {
         goto cleanup;
     }
