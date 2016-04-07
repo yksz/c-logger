@@ -149,7 +149,7 @@ static long getFileSize(const char* filename)
 int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char maxBackupFiles)
 {
     if (filename == NULL) {
-        assert(0 && "filename must not be null");
+        assert(0 && "filename must not be NULL");
         return 0;
     }
 
@@ -320,6 +320,7 @@ void logger_log(enum LogLevel level, const char* file, int line, const char* fmt
             break;
         default:
             assert(0 && "Unknown logger");
+            break;
     }
     va_end(arg);
 cleanup:

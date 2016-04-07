@@ -44,7 +44,7 @@ int logger_configure(const char* filename)
     char line[kMaxLineLen];
 
     if (filename == NULL) {
-        assert(0 && "filename must not be null");
+        assert(0 && "filename must not be NULL");
         return 0;
     }
 
