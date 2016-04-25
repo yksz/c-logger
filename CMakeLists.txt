@@ -5,6 +5,8 @@ set(CMAKE_C_FLAGS "-Wall -std=c89")
 set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG")
 set(CMAKE_C_FLAGS_DEBUG "-g")
 
+option(build_tests "Build all of own tests." OFF)
+
 ### Library
 set(source_files
     src/logger.c
@@ -26,3 +28,9 @@ install(FILES ${header_files} DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
 ### Document
 add_custom_target(doc COMMAND "doxygen" "${PROJECT_SOURCE_DIR}/doc/Doxyfile")
+
+### Test
+if(build_tests)
+    enable_testing()
+    add_subdirectory(test)
+endif()
