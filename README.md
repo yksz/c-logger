@@ -9,6 +9,7 @@ This library's main features:
 * 2 logging types:
   * Console logging
   * File logging rotated by file size
+* Custom with a configuration file
 
 Installation
 ============
