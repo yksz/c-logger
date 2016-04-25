@@ -42,6 +42,7 @@ int logger_configure(const char* filename)
 {
     FILE* fp;
     char line[kMaxLineLen];
+    int ok = 0;
 
     if (filename == NULL) {
         assert(0 && "filename must not be NULL");
@@ -64,13 +65,16 @@ int logger_configure(const char* filename)
 
     switch (s_logger) {
         case kConsoleLogger:
-            logger_initConsoleLogger(s_clog.output);
+            ok = logger_initConsoleLogger(s_clog.output);
             break;
         case kFileLogger:
-            logger_initFileLogger(s_flog.filename, s_flog.maxFileSize, s_flog.maxBackupFiles);
+            ok = logger_initFileLogger(s_flog.filename, s_flog.maxFileSize, s_flog.maxBackupFiles);
             break;
         default:
             return 0;
+    }
+    if (!ok) {
+        return 0;
     }
     return 1;
 }
