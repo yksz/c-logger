@@ -246,8 +246,9 @@ static int rotateLogFiles(void)
 
 static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, const char* fmt, va_list arg)
 {
-    struct timeval now;
     char levelc;
+    struct timeval now;
+    time_t time;
     char timestr[32];
     int size;
     long totalsize = 0;
@@ -276,7 +277,8 @@ static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, con
             return 0;
     }
     gettimeofday(&now, NULL);
-    strftime(timestr, sizeof(timestr), "%y-%m-%d %H:%M:%S", localtime(&(now.tv_sec)));
+    time = now.tv_sec;
+    strftime(timestr, sizeof(timestr), "%y-%m-%d %H:%M:%S", localtime(&time));
     sprintf(timestr, "%s.%06ld", timestr, (long) now.tv_usec);
     if ((size = fprintf(fp, "%c %s %ld %s:%d: ", levelc, timestr, getCurrentThreadID(), file, line)) > 0) {
         totalsize += size;
