@@ -6,6 +6,7 @@ set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG")
 set(CMAKE_C_FLAGS_DEBUG "-g")
 
 option(build_tests "Build all of own tests." OFF)
+option(build_examples "Build example programs." OFF)
 
 ### Library
 set(source_files
