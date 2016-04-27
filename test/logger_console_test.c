@@ -5,7 +5,6 @@
 #else
  #include <fcntl.h>
  #include <unistd.h>
-
 #endif /* defined(_WIN32) || defined(_WIN64) */
 #include "nanounit.h"
 
@@ -68,6 +67,7 @@ static int test_consoleLogger(void)
     /* cleanup: restore original stdout */
     dup2(stdoutfd, 1);
 
+    /* and: close resources */
     fclose(fp);
     fclose(redirect);
     close(stdoutfd);
