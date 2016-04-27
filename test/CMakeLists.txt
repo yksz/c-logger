@@ -1,4 +1,6 @@
 set(tests
+    logger_console_test
+    logger_file_test
     loggerconf_test
 )
 include_directories(

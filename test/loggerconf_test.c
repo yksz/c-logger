@@ -1,7 +1,11 @@
 #include "loggerconf.h"
-#include <string.h>
 #include "logger.h"
 #include "nanounit.h"
+
+static void cleanup(void)
+{
+    remove("conf.log");
+}
 
 static int test_configure_empty(void)
 {
@@ -12,7 +16,6 @@ static int test_configure_empty(void)
 
 static int test_configure_consoleLogger(void)
 {
-
     int result = logger_configure("res/console.conf");
     nu_assert_eq_int(1, result);
     nu_assert_eq_int(LogLevel_TRACE, logger_getLevel());
@@ -32,5 +35,6 @@ int main(int argc, char* argv[])
     nu_run_test(test_configure_empty);
     nu_run_test(test_configure_consoleLogger);
     nu_run_test(test_configure_fileLogger);
+    cleanup();
     nu_report();
 }
