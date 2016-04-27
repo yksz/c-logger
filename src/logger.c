@@ -17,8 +17,8 @@
 enum
 {
     /* Logger type */
-    kConsoleLogger = 1,
-    kFileLogger = 2,
+    kConsoleLogger = 1 << 0,
+    kFileLogger = 1 << 1,
 
     kMaxFileNameLen = 256,
     kDefaultMaxFileSize = 1048576L, /* 1 MB */
@@ -127,7 +127,7 @@ int logger_initConsoleLogger(FILE* output)
     }
 
     s_clog.output = output;
-    s_logger = kConsoleLogger;
+    s_logger |= kConsoleLogger;
     init();
     return 1;
 }
@@ -165,7 +165,7 @@ int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char 
     strncpy(s_flog.filename, filename, kMaxFileNameLen - 1);
     s_flog.maxFileSize = (maxFileSize > 0) ? maxFileSize : kDefaultMaxFileSize;
     s_flog.maxBackupFiles = maxBackupFiles;
-    s_logger = kFileLogger;
+    s_logger |= kFileLogger;
     init();
     return 1;
 }
@@ -297,6 +297,11 @@ static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, con
     return totalsize;
 }
 
+static int hasFlag(int flags, int flag)
+{
+    return (flags & flag) == flag;
+}
+
 void logger_log(enum LogLevel level, const char* file, int line, const char* fmt, ...)
 {
     va_list arg;
@@ -311,18 +316,13 @@ void logger_log(enum LogLevel level, const char* file, int line, const char* fmt
         goto cleanup;
     }
     va_start(arg, fmt);
-    switch (s_logger) {
-        case kConsoleLogger:
-            vflog(level, s_clog.output, file, line, fmt, arg);
-            break;
-        case kFileLogger:
-            if (rotateLogFiles()) {
-                s_flog.currentFileSize += vflog(level, s_flog.fp, file, line, fmt, arg);
-            }
-            break;
-        default:
-            assert(0 && "Unknown logger");
-            break;
+    if (hasFlag(s_logger, kConsoleLogger)) {
+        vflog(level, s_clog.output, file, line, fmt, arg);
+    }
+    if (hasFlag(s_logger, kFileLogger)) {
+        if (rotateLogFiles()) {
+            s_flog.currentFileSize += vflog(level, s_flog.fp, file, line, fmt, arg);
+        }
     }
     va_end(arg);
 cleanup:

@@ -9,8 +9,8 @@
 enum
 {
     /* Logger type */
-    kConsoleLogger = 1,
-    kFileLogger = 2,
+    kConsoleLogger = 1 << 0,
+    kFileLogger = 1 << 1,
 
     kMaxFileNameLen = 256,
     kMaxLineLen = 512,
@@ -37,12 +37,13 @@ static int s_logger;
 static void removeComments(char* s);
 static void trim(char* s);
 static void parseLine(char* line);
+static int hasFlag(int flags, int flag);
 
 int logger_configure(const char* filename)
 {
     FILE* fp;
     char line[kMaxLineLen];
-    int ok = 0;
+    int ok = 1;
 
     if (filename == NULL) {
         assert(0 && "filename must not be NULL");
@@ -63,19 +64,16 @@ int logger_configure(const char* filename)
     }
     fclose(fp);
 
-    switch (s_logger) {
-        case kConsoleLogger:
-            ok = logger_initConsoleLogger(s_clog.output);
-            break;
-        case kFileLogger:
-            ok = logger_initFileLogger(s_flog.filename, s_flog.maxFileSize, s_flog.maxBackupFiles);
-            break;
-        default:
-            return 0;
+    if (hasFlag(s_logger, kConsoleLogger)) {
+        ok &= logger_initConsoleLogger(s_clog.output);
     }
-    if (!ok) {
+    if (hasFlag(s_logger, kFileLogger)) {
+        ok &= logger_initFileLogger(s_flog.filename, s_flog.maxFileSize, s_flog.maxBackupFiles);
+    }
+    if (s_logger == 0 || !ok) {
         return 0;
     }
+    s_logger = 0;
     return 1;
 }
 
@@ -125,9 +123,9 @@ static void parseLine(char* line)
         logger_setLevel(parseLevel(val));
     } else if (strcmp(key, "logger") == 0) {
         if (strcmp(val, "console") == 0) {
-            s_logger = kConsoleLogger;
+            s_logger |= kConsoleLogger;
         } else if (strcmp(val, "file") == 0) {
-            s_logger = kFileLogger;
+            s_logger |= kFileLogger;
         } else {
             fprintf(stderr, "ERROR: loggerconf: Invalid logger: `%s`\n", val);
             s_logger = 0;
@@ -173,4 +171,9 @@ static enum LogLevel parseLevel(const char* s)
         fprintf(stderr, "ERROR: loggerconf: Invalid level: `%s`\n", s);
         return logger_getLevel();
     }
+}
+
+static int hasFlag(int flags, int flag)
+{
+    return (flags & flag) == flag;
 }
