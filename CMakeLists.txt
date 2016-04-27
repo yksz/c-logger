@@ -34,3 +34,8 @@ if(build_tests)
     enable_testing()
     add_subdirectory(test)
 endif()
+
+### Example
+if(build_examples)
+    add_subdirectory(example)
+endif()
