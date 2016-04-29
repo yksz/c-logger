@@ -3,7 +3,7 @@ What is this?
 This is a simple logging library for C/C++.
 
 This library's main features:
-* Lightweight - only 400-line source code
+* Lightweight - only 500-line source code
 * C89 support
 * Thread-safe
 * 2 logging types:
