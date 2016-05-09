@@ -50,7 +50,9 @@ static int test_consoleLogger(void)
     nu_assert_eq_int(1, result);
 
     /* when: output to stdout */
-    LOG_FATAL(message);
+    LOG_TRACE(message);
+    LOG_DEBUG(message);
+    LOG_INFO(message);
 
     /* then: */
     if ((fp = fopen(kOutputFilename, "r")) == NULL) {
@@ -58,8 +60,8 @@ static int test_consoleLogger(void)
     }
     while (fgets(line, sizeof(line), fp) != NULL) {
         line[strlen(line) - 1] = '\0'; /* remove LF */
-        nu_assert_eq_int('F', line[0]);
-        nu_assert_eq_str(message, &line[strlen(line) - sizeof(message) + 1]);
+        nu_assert_eq_int('I', line[0]);
+        nu_assert_eq_str(message, &line[strlen(line) - strlen(message)]);
         count++;
     }
     nu_assert_eq_int(1, count);
