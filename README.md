@@ -13,13 +13,20 @@ This library's main features:
 
 Installation
 ============
-```shell
-mkdir build
+```
+./build.sh
 cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 sudo make install
 ```
+or
+
+```
+build.bat
+```
+or
+
+Copy files in src directory to your project
 
 Platform
 ========
