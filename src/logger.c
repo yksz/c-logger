@@ -45,7 +45,6 @@ s_flog;
 
 static int s_logger;
 static enum LogLevel s_logLevel = LogLevel_INFO;
-static struct timeval s_flushtime;
 static int s_initialized = 0; /* false */
 #if defined(_WIN32) || defined(_WIN64)
 static CRITICAL_SECTION s_mutex;
@@ -252,6 +251,7 @@ static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, con
     char timestr[32];
     int size;
     long totalsize = 0;
+    static struct timeval flushtime;
 
     switch (level) {
         case LogLevel_TRACE:
@@ -289,10 +289,10 @@ static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, con
     if ((size = fprintf(fp, "\n")) > 0) {
         totalsize += size;
     }
-    if (now.tv_sec - s_flushtime.tv_sec >= 1 || now.tv_usec - s_flushtime.tv_usec > kFlushInterval) {
+    if (now.tv_sec - flushtime.tv_sec >= 1 || now.tv_usec - flushtime.tv_usec > kFlushInterval) {
         fflush(fp);
-        s_flushtime.tv_sec = now.tv_sec;
-        s_flushtime.tv_usec = now.tv_usec;
+        flushtime.tv_sec = now.tv_sec;
+        flushtime.tv_usec = now.tv_usec;
     }
     return totalsize;
 }
