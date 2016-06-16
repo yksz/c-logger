@@ -75,7 +75,7 @@ LOG_DEBUG("format example: %d%c%s", 1, '2', "3");
 
 The output of the logger is the following:
 ```
-I 15-11-10 00:32:43.771455 2854 filelogger.c:6: file logger
+I 15-11-10 00:32:43.771455 2854 filelogger.c:6: file logging
 D 15-11-10 00:32:43.771564 2854 filelogger.c:7: format example: 123
 ```
 
