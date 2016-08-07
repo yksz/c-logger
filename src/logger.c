@@ -179,6 +179,11 @@ enum LogLevel logger_getLevel(void)
     return s_logLevel;
 }
 
+int logger_isEnabled(enum LogLevel level)
+{
+    return s_logLevel <= level;
+}
+
 static char* getBackupFileName(const char* basename, unsigned char index)
 {
     int len = strlen(basename) + 4; /* <basename>.255 */

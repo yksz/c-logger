@@ -69,6 +69,13 @@ void logger_setLevel(enum LogLevel level);
 enum LogLevel logger_getLevel(void);
 
 /**
+ * Check if a message of the level would actually be logged.
+ *
+ * @return Non-zero value if the log level is enabled
+ */
+int logger_isEnabled(enum LogLevel level);
+
+/**
  * Log a message.
  * Make sure to call one of the following initialize functions before starting logging.
  * - logger_initConsoleLogger()
