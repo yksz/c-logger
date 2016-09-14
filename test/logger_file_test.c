@@ -22,10 +22,10 @@ static int test_fileLogger(void)
     char line[256];
     int count = 0;
 
-    /* when: */
+    /* when: initialize file logger */
     result = logger_initFileLogger(kOutputFilename, 0, 0);
 
-    /* then: */
+    /* then: ok */
     nu_assert_eq_int(1, result);
 
     /* when: output to the file */
@@ -33,7 +33,7 @@ static int test_fileLogger(void)
     LOG_DEBUG(message);
     LOG_INFO(message);
 
-    /* then: */
+    /* then: write only one line */
     if ((fp = fopen(kOutputFilename, "r")) == NULL) {
         nu_fail();
     }
@@ -45,7 +45,7 @@ static int test_fileLogger(void)
     }
     nu_assert_eq_int(1, count);
 
-    /* cleanup: */
+    /* cleanup: close resources */
     fclose(fp);
     return 0;
 }

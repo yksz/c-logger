@@ -43,10 +43,10 @@ static int test_consoleLogger(void)
     }
     dup2(fileno(redirect), 1);
 
-    /* when: */
+    /* when: initialize console logger */
     result = logger_initConsoleLogger(stdout);
 
-    /* then: */
+    /* then: ok */
     nu_assert_eq_int(1, result);
 
     /* when: output to stdout */
@@ -54,7 +54,7 @@ static int test_consoleLogger(void)
     LOG_DEBUG(message);
     LOG_INFO(message);
 
-    /* then: */
+    /* then: write only one line */
     if ((fp = fopen(kOutputFilename, "r")) == NULL) {
         nu_fail();
     }
