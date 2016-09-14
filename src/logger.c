@@ -214,14 +214,14 @@ static int isFileExist(const char* filename)
 
 static int rotateLogFiles(void)
 {
-    unsigned char i;
+    int i;
     char *src, *dst;
 
     if (s_flog.currentFileSize < s_flog.maxFileSize) {
         return s_flog.fp != NULL;
     }
     fclose(s_flog.fp);
-    for (i = s_flog.maxBackupFiles; i > 0; i--) {
+    for (i = (int) s_flog.maxBackupFiles; i > 0; i--) {
         src = getBackupFileName(s_flog.filename, i - 1);
         dst = getBackupFileName(s_flog.filename, i);
         if (src != NULL && dst != NULL) {
