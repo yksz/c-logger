@@ -43,9 +43,9 @@ static struct
 }
 s_flog;
 
-static int s_logger;
-static enum LogLevel s_logLevel = LogLevel_INFO;
-static int s_initialized = 0; /* false */
+static volatile int s_logger;
+static volatile enum LogLevel s_logLevel = LogLevel_INFO;
+static volatile int s_initialized = 0; /* false */
 #if defined(_WIN32) || defined(_WIN64)
 static CRITICAL_SECTION s_mutex;
 #else
@@ -316,11 +316,11 @@ void logger_log(enum LogLevel level, const char* file, int line, const char* fmt
         return;
     }
 
-    lock();
     if (!logger_isEnabled(level)) {
-        goto cleanup;
+        return;
     }
     va_start(arg, fmt);
+    lock();
     if (hasFlag(s_logger, kConsoleLogger)) {
         vflog(level, s_clog.output, file, line, fmt, arg);
     }
@@ -329,7 +329,6 @@ void logger_log(enum LogLevel level, const char* file, int line, const char* fmt
             s_flog.currentFileSize += vflog(level, s_flog.fp, file, line, fmt, arg);
         }
     }
-    va_end(arg);
-cleanup:
     unlock();
+    va_end(arg);
 }
