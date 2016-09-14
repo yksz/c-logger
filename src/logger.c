@@ -317,7 +317,7 @@ void logger_log(enum LogLevel level, const char* file, int line, const char* fmt
     }
 
     lock();
-    if (s_logLevel > level) {
+    if (!logger_isEnabled(level)) {
         goto cleanup;
     }
     va_start(arg, fmt);
