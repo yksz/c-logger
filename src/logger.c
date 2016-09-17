@@ -43,7 +43,7 @@ static struct
 }
 s_flog;
 
-static volatile int s_logger;
+static int s_logger;
 static volatile enum LogLevel s_logLevel = LogLevel_INFO;
 static volatile int s_initialized = 0; /* false */
 #if defined(_WIN32) || defined(_WIN64)
@@ -125,9 +125,11 @@ int logger_initConsoleLogger(FILE* output)
         return 0;
     }
 
+    init();
+    lock();
     s_clog.output = output;
     s_logger |= kConsoleLogger;
-    init();
+    unlock();
     return 1;
 }
 
@@ -147,26 +149,32 @@ static long getFileSize(const char* filename)
 
 int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char maxBackupFiles)
 {
+    int ok = 0; /* false */
+
     if (filename == NULL) {
         assert(0 && "filename must not be NULL");
         return 0;
     }
 
+    init();
+    lock();
     if (s_flog.fp != NULL) { /* reinit */
         fclose(s_flog.fp);
     }
     s_flog.fp = fopen(filename, "a");
     if (s_flog.fp == NULL) {
         fprintf(stderr, "ERROR: logger: Failed to open file: `%s`\n", filename);
-        return 0;
+        goto cleanup;
     }
     s_flog.currentFileSize = getFileSize(filename);
     strncpy(s_flog.filename, filename, kMaxFileNameLen - 1);
     s_flog.maxFileSize = (maxFileSize > 0) ? maxFileSize : kDefaultMaxFileSize;
     s_flog.maxBackupFiles = maxBackupFiles;
     s_logger |= kFileLogger;
-    init();
-    return 1;
+    ok = 1; /* true */
+cleanup:
+    unlock();
+    return ok;
 }
 
 void logger_setLevel(enum LogLevel level)
