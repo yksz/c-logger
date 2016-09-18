@@ -19,13 +19,13 @@ cd %dirname%
 
 rem build
 if %debug% == true (
-    cmake -G "Visual Studio 12" ^
+    cmake -G "Visual Studio 14" ^
         -Dbuild_tests=ON ^
         -Dbuild_examples=ON ^
         ..
     cmake --build . --config Debug
 ) else (
-    cmake -G "Visual Studio 12" ..
+    cmake -G "Visual Studio 14" ..
     cmake --build . --config Release
 )
 
