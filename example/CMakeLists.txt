@@ -1,6 +1,7 @@
 set(examples
     logger_console_example
     logger_file_example
+    logger_multi_example
     loggerconf_example
 )
 include_directories(
