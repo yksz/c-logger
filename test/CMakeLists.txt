@@ -2,6 +2,7 @@ set(tests
     logger_console_test
     logger_file_test
     logger_loglevel_test
+    logger_multi_test
     loggerconf_test
 )
 include_directories(

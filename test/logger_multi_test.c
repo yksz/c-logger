@@ -14,31 +14,33 @@
 #define fileno _fileno
 #endif /* defined(_WIN32) || defined(_WIN64) */
 
-static const char kOutputFileName[] = "console.log";
+static const char* kConsoleOutputFileName = "console.log";
+static const char* kFileOutputFileName = "file.log";
 
 static void setup(void)
 {
-    remove(kOutputFileName);
+    remove(kConsoleOutputFileName);
+    remove(kFileOutputFileName);
 }
 
 static void cleanup(void)
 {
-    remove(kOutputFileName);
+    remove(kConsoleOutputFileName);
+    remove(kFileOutputFileName);
 }
 
-static int test_consoleLogger(void)
+static int checkOnlyOneLineWritten(const char* filename, const char* message);
+
+static int test_multiLogger(void)
 {
     const char message[] = "message";
     int stdoutfd;
     FILE* redirect;
     int result;
-    FILE* fp;
-    char line[256];
-    int count = 0;
 
     /* setup: redirect stdout to a file */
     stdoutfd = dup(1);
-    if ((redirect = fopen(kOutputFileName, "w")) == NULL) {
+    if ((redirect = fopen(kConsoleOutputFileName, "w")) == NULL) {
         nu_fail();
     }
     dup2(fileno(redirect), 1);
@@ -49,13 +51,37 @@ static int test_consoleLogger(void)
     /* then: ok */
     nu_assert_eq_int(1, result);
 
+    /* when: initialize file logger */
+    result = logger_initFileLogger(kFileOutputFileName, 0, 0);
+
+    /* then: ok */
+    nu_assert_eq_int(1, result);
+
     /* when: output to stdout */
     LOG_TRACE(message);
     LOG_DEBUG(message);
     LOG_INFO(message);
 
     /* then: write only one line */
-    if ((fp = fopen(kOutputFileName, "r")) == NULL) {
+    checkOnlyOneLineWritten(kConsoleOutputFileName, message);
+    checkOnlyOneLineWritten(kFileOutputFileName, message);
+
+    /* cleanup: restore original stdout */
+    dup2(stdoutfd, 1);
+
+    /* and: close resources */
+    fclose(redirect);
+    close(stdoutfd);
+    return 0;
+}
+
+static int checkOnlyOneLineWritten(const char* filename, const char* message)
+{
+    FILE* fp;
+    char line[256];
+    int count = 0;
+
+    if ((fp = fopen(filename, "r")) == NULL) {
         nu_fail();
     }
     while (fgets(line, sizeof(line), fp) != NULL) {
@@ -66,20 +92,14 @@ static int test_consoleLogger(void)
     }
     nu_assert_eq_int(1, count);
 
-    /* cleanup: restore original stdout */
-    dup2(stdoutfd, 1);
-
-    /* and: close resources */
     fclose(fp);
-    fclose(redirect);
-    close(stdoutfd);
     return 0;
 }
 
 int main(int argc, char* argv[])
 {
     setup();
-    nu_run_test(test_consoleLogger);
+    nu_run_test(test_multiLogger);
     cleanup();
     nu_report();
 }

@@ -2,16 +2,16 @@
 #include <stdio.h>
 #include "nanounit.h"
 
-static const char kOutputFilename[] = "file.log";
+static const char kOutputFileName[] = "file.log";
 
 static void setup(void)
 {
-    remove(kOutputFilename);
+    remove(kOutputFileName);
 }
 
 static void cleanup(void)
 {
-    remove(kOutputFilename);
+    remove(kOutputFileName);
 }
 
 static int test_fileLogger(void)
@@ -23,7 +23,7 @@ static int test_fileLogger(void)
     int count = 0;
 
     /* when: initialize file logger */
-    result = logger_initFileLogger(kOutputFilename, 0, 0);
+    result = logger_initFileLogger(kOutputFileName, 0, 0);
 
     /* then: ok */
     nu_assert_eq_int(1, result);
@@ -34,7 +34,7 @@ static int test_fileLogger(void)
     LOG_INFO(message);
 
     /* then: write only one line */
-    if ((fp = fopen(kOutputFilename, "r")) == NULL) {
+    if ((fp = fopen(kOutputFileName, "r")) == NULL) {
         nu_fail();
     }
     while (fgets(line, sizeof(line), fp) != NULL) {
