@@ -29,21 +29,23 @@ enum
 static struct
 {
     FILE* output;
+    struct timeval flushtime;
 }
 s_clog;
 
 /* File logger */
 static struct
 {
+    FILE* output;
     char filename[kMaxFileNameLen];
-    FILE* fp;
     long maxFileSize;
     unsigned char maxBackupFiles;
     long currentFileSize;
+    struct timeval flushtime;
 }
 s_flog;
 
-static int s_logger;
+static volatile int s_logger;
 static volatile enum LogLevel s_logLevel = LogLevel_INFO;
 static volatile int s_initialized = 0; /* false */
 #if defined(_WIN32) || defined(_WIN64)
@@ -158,11 +160,11 @@ int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char 
 
     init();
     lock();
-    if (s_flog.fp != NULL) { /* reinit */
-        fclose(s_flog.fp);
+    if (s_flog.output != NULL) { /* reinit */
+        fclose(s_flog.output);
     }
-    s_flog.fp = fopen(filename, "a");
-    if (s_flog.fp == NULL) {
+    s_flog.output = fopen(filename, "a");
+    if (s_flog.output == NULL) {
         fprintf(stderr, "ERROR: logger: Failed to open file: `%s`\n", filename);
         goto cleanup;
     }
@@ -226,9 +228,9 @@ static int rotateLogFiles(void)
     char *src, *dst;
 
     if (s_flog.currentFileSize < s_flog.maxFileSize) {
-        return s_flog.fp != NULL;
+        return s_flog.output != NULL;
     }
-    fclose(s_flog.fp);
+    fclose(s_flog.output);
     for (i = (int) s_flog.maxBackupFiles; i > 0; i--) {
         src = getBackupFileName(s_flog.filename, i - 1);
         dst = getBackupFileName(s_flog.filename, i);
@@ -247,8 +249,8 @@ static int rotateLogFiles(void)
         free(src);
         free(dst);
     }
-    s_flog.fp = fopen(s_flog.filename, "a");
-    if (s_flog.fp == NULL) {
+    s_flog.output = fopen(s_flog.filename, "a");
+    if (s_flog.output == NULL) {
         fprintf(stderr, "ERROR: logger: Failed to open file: `%s`\n", s_flog.filename);
         return 0;
     }
@@ -256,44 +258,19 @@ static int rotateLogFiles(void)
     return 1;
 }
 
-static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, const char* fmt, va_list arg)
+static long vflog(FILE* fp, struct timeval* now, char levelc, long threadID,
+        const char* file, int line, const char* fmt, va_list arg,
+        struct timeval* flushtime)
 {
-    char levelc;
-    struct timeval now;
     time_t time;
     char timestr[32];
     int size;
     long totalsize = 0;
-    static struct timeval flushtime;
 
-    switch (level) {
-        case LogLevel_TRACE:
-            levelc = 'T';
-            break;
-        case LogLevel_DEBUG:
-            levelc = 'D';
-            break;
-        case LogLevel_INFO:
-            levelc = 'I';
-            break;
-        case LogLevel_WARN:
-            levelc = 'W';
-            break;
-        case LogLevel_ERROR:
-            levelc = 'E';
-            break;
-        case LogLevel_FATAL:
-            levelc = 'F';
-            break;
-        default:
-            assert(0 && "Unknown LogLevel");
-            return 0;
-    }
-    gettimeofday(&now, NULL);
-    time = now.tv_sec;
+    time = now->tv_sec;
     strftime(timestr, sizeof(timestr), "%y-%m-%d %H:%M:%S", localtime(&time));
-    sprintf(timestr, "%s.%06ld", timestr, (long) now.tv_usec);
-    if ((size = fprintf(fp, "%c %s %ld %s:%d: ", levelc, timestr, getCurrentThreadID(), file, line)) > 0) {
+    sprintf(timestr, "%s.%06ld", timestr, (long) now->tv_usec);
+    if ((size = fprintf(fp, "%c %s %ld %s:%d: ", levelc, timestr, threadID, file, line)) > 0) {
         totalsize += size;
     }
     if ((size = vfprintf(fp, fmt, arg)) > 0) {
@@ -302,12 +279,27 @@ static long vflog(enum LogLevel level, FILE* fp, const char* file, int line, con
     if ((size = fprintf(fp, "\n")) > 0) {
         totalsize += size;
     }
-    if (now.tv_sec - flushtime.tv_sec >= 1 || now.tv_usec - flushtime.tv_usec > kFlushInterval) {
+    if (now->tv_sec - flushtime->tv_sec >= 1 || now->tv_usec - flushtime->tv_usec > kFlushInterval) {
         fflush(fp);
-        flushtime.tv_sec = now.tv_sec;
-        flushtime.tv_usec = now.tv_usec;
+        flushtime->tv_sec = now->tv_sec;
+        flushtime->tv_usec = now->tv_usec;
     }
     return totalsize;
+}
+
+static char getLevelChar(enum LogLevel level)
+{
+    switch (level) {
+        case LogLevel_TRACE: return 'T';
+        case LogLevel_DEBUG: return 'D';
+        case LogLevel_INFO:  return 'I';
+        case LogLevel_WARN:  return 'W';
+        case LogLevel_ERROR: return 'E';
+        case LogLevel_FATAL: return 'F';
+        default:
+            assert(0 && "Unknown LogLevel");
+            return ' ';
+    }
 }
 
 static int hasFlag(int flags, int flag)
@@ -317,26 +309,35 @@ static int hasFlag(int flags, int flag)
 
 void logger_log(enum LogLevel level, const char* file, int line, const char* fmt, ...)
 {
-    va_list arg;
+    struct timeval now;
+    char levelc;
+    long threadID;
+    va_list carg, farg;
 
-    if (!s_initialized) {
-        assert(0 && "Not initialized");
+    if (s_logger == 0 || !s_initialized) {
+        assert(0 && "logger is not initialized");
         return;
     }
 
     if (!logger_isEnabled(level)) {
         return;
     }
-    va_start(arg, fmt);
+    gettimeofday(&now, NULL);
+    levelc = getLevelChar(level);
+    threadID = getCurrentThreadID();
     lock();
     if (hasFlag(s_logger, kConsoleLogger)) {
-        vflog(level, s_clog.output, file, line, fmt, arg);
+        va_start(carg, fmt);
+        vflog(s_clog.output, &now, levelc, threadID, file, line, fmt, carg, &s_clog.flushtime);
+        va_end(carg);
     }
     if (hasFlag(s_logger, kFileLogger)) {
         if (rotateLogFiles()) {
-            s_flog.currentFileSize += vflog(level, s_flog.fp, file, line, fmt, arg);
+            va_start(farg, fmt);
+            s_flog.currentFileSize += vflog(s_flog.output, &now, levelc, threadID,
+                    file, line, fmt, farg, &s_flog.flushtime);
+            va_end(farg);
         }
     }
     unlock();
-    va_end(arg);
 }
