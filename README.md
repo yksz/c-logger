@@ -1,18 +1,17 @@
-What is this?
-=============
+# What is this?
 This is a simple logging library for C/C++.
 
 This library's main features:
-* Lightweight - only 500-line source code
-* C89 support
-* Thread-safe
-* 2 logging types:
-  * Console logging
-  * File logging rotated by file size
-* Custom with a configuration file
+- Lightweight - only 500-line source code
+- C89 support
+- Thread-safe
+- 2 logging types:
+  - Console logging
+  - File logging rotated by file size
+- Custom with a configuration file
 
-Installation
-============
+
+# Installation
 ```
 ./build.sh
 cd build
@@ -28,36 +27,36 @@ or
 
 Copy files in src directory to your project
 
-Platform
-========
-* Windows (Visual Studio 2008+)
-* Mac OS X (clang 3.6+)
-* Linux (gcc 4.8.4+)
+
+# Platform
+- Windows (Visual Studio 2008+)
+- Mac OS X (clang 3.6+)
+- Linux (gcc 4.8.4+)
 
 Note: Operations are confirmed on the above platforms
 
-Benchmark
-=========
+
+# Benchmark
 This following table comparing other libraries is benchmark results to log 1,000,000 times.
 
 | threads  | c-logger | glog     |
 |:---------|---------:|---------:|
-| 1        | 2.011s   | 1.822s   |
-| 10       | 3.275s   | 1.981s   |
+| 1        | 0.953s   | 1.267s   |
+| 10       | 1.661s   | 1.183s   |
 
 **Benchmark environment**
-* Processor: Intel Core i3-4170 CPU @ 3.70GHz
-* Memory: 4.0GB
-* OS: Ubuntu 14.04 32bit
+- Processor: Intel Core i3-4170 CPU @ 3.70GHz
+- Memory: 8.0GB
+- OS: Ubuntu 16.04 64bit
 
-Log format
-==========
+
+# Log format
 ```
 level yy-MM-dd hh:mm:ss:uuuuuu threadid file:line: message
 ```
 
-Example
-=======
+
+# Example
 #### Console logging
 ```c
 logger_initConsoleLogger(stderr);
@@ -79,6 +78,13 @@ I 15-11-10 00:32:43.771455 2854 filelogger.c:6: file logging
 D 15-11-10 00:32:43.771564 2854 filelogger.c:7: format example: 123
 ```
 
-License
-=======
+#### Multi logging
+```c
+logger_initConsoleLogger(NULL);
+logger_initFileLogger("logs/log.txt", 0, 0);
+LOG_INFO("multi logging");
+```
+
+
+# License
 The MIT license

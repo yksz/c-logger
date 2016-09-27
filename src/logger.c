@@ -104,9 +104,15 @@ static int gettimeofday(struct timeval* tv, void* tz)
     tv->tv_usec = t % 1000000;
     return 0;
 }
+
+struct tm* localtime_r(const time_t* timep, struct tm* result)
+{
+    localtime_s(result, timep);
+    return result;
+}
 #endif /* defined(_WIN32) || defined(_WIN64) */
 
-static long getCurrentThreadID()
+static long getCurrentThreadID(void)
 {
 #if defined(_WIN32) || defined(_WIN64)
     return GetCurrentThreadId();
@@ -258,18 +264,16 @@ static int rotateLogFiles(void)
     return 1;
 }
 
-static long vflog(FILE* fp, struct timeval* now, char levelc, long threadID,
-        const char* file, int line, const char* fmt, va_list arg,
+static long vflog(FILE* fp, struct timeval* timestamp, struct tm* calendar,
+        char levelc, long threadID, const char* file, int line, const char* fmt, va_list arg,
         struct timeval* flushtime)
 {
-    time_t time;
     char timestr[32];
     int size;
     long totalsize = 0;
 
-    time = now->tv_sec;
-    strftime(timestr, sizeof(timestr), "%y-%m-%d %H:%M:%S", localtime(&time));
-    sprintf(timestr, "%s.%06ld", timestr, (long) now->tv_usec);
+    strftime(timestr, sizeof(timestr), "%y-%m-%d %H:%M:%S", calendar);
+    sprintf(timestr, "%s.%06ld", timestr, (long) timestamp->tv_usec);
     if ((size = fprintf(fp, "%c %s %ld %s:%d: ", levelc, timestr, threadID, file, line)) > 0) {
         totalsize += size;
     }
@@ -279,10 +283,11 @@ static long vflog(FILE* fp, struct timeval* now, char levelc, long threadID,
     if ((size = fprintf(fp, "\n")) > 0) {
         totalsize += size;
     }
-    if (now->tv_sec - flushtime->tv_sec >= 1 || now->tv_usec - flushtime->tv_usec > kFlushInterval) {
+    if (timestamp->tv_sec - flushtime->tv_sec >= 1
+            || timestamp->tv_usec - flushtime->tv_usec > kFlushInterval) {
         fflush(fp);
-        flushtime->tv_sec = now->tv_sec;
-        flushtime->tv_usec = now->tv_usec;
+        flushtime->tv_sec = timestamp->tv_sec;
+        flushtime->tv_usec = timestamp->tv_usec;
     }
     return totalsize;
 }
@@ -309,7 +314,9 @@ static int hasFlag(int flags, int flag)
 
 void logger_log(enum LogLevel level, const char* file, int line, const char* fmt, ...)
 {
-    struct timeval now;
+    struct timeval timestamp;
+    time_t sec;
+    struct tm calendar;
     char levelc;
     long threadID;
     va_list carg, farg;
@@ -322,20 +329,23 @@ void logger_log(enum LogLevel level, const char* file, int line, const char* fmt
     if (!logger_isEnabled(level)) {
         return;
     }
-    gettimeofday(&now, NULL);
+    gettimeofday(&timestamp, NULL);
+    sec = timestamp.tv_sec;
+    localtime_r(&sec, &calendar);
     levelc = getLevelChar(level);
     threadID = getCurrentThreadID();
     lock();
     if (hasFlag(s_logger, kConsoleLogger)) {
         va_start(carg, fmt);
-        vflog(s_clog.output, &now, levelc, threadID, file, line, fmt, carg, &s_clog.flushtime);
+        vflog(s_clog.output, &timestamp, &calendar,
+                levelc, threadID, file, line, fmt, carg, &s_clog.flushtime);
         va_end(carg);
     }
     if (hasFlag(s_logger, kFileLogger)) {
         if (rotateLogFiles()) {
             va_start(farg, fmt);
-            s_flog.currentFileSize += vflog(s_flog.output, &now, levelc, threadID,
-                    file, line, fmt, farg, &s_flog.flushtime);
+            s_flog.currentFileSize += vflog(s_flog.output, &timestamp, &calendar,
+                    levelc, threadID, file, line, fmt, farg, &s_flog.flushtime);
             va_end(farg);
         }
     }
