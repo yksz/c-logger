@@ -1,4 +1,16 @@
-# What is this?
+# C logger
+
+## Table of Contents
+- [What is this?](#what-is-this)
+- [Installation](#installation)
+- [Platform](#platform)
+- [Benchmark](#benchmark)
+- [Log format](#log-format)
+- [Example](#example)
+- [License](#license)
+
+
+## What is this?
 This is a simple logging library for C/C++.
 
 This library's main features:
@@ -11,7 +23,7 @@ This library's main features:
 - Custom with a configuration file
 
 
-# Installation
+## Installation
 ```
 ./build.sh
 cd build
@@ -28,7 +40,7 @@ or
 Copy files in src directory to your project
 
 
-# Platform
+## Platform
 - Windows (Visual Studio 2008+)
 - Mac OS X (clang 3.6+)
 - Linux (gcc 4.8.4+)
@@ -36,7 +48,7 @@ Copy files in src directory to your project
 Note: Operations are confirmed on the above platforms
 
 
-# Benchmark
+## Benchmark
 This following table comparing other libraries is benchmark results to log 1,000,000 times.
 
 | threads  | c-logger | glog     |
@@ -50,13 +62,13 @@ This following table comparing other libraries is benchmark results to log 1,000
 - OS: Ubuntu 16.04 64bit
 
 
-# Log format
+## Log format
 ```
 level yy-MM-dd hh:mm:ss:uuuuuu threadid file:line: message
 ```
 
 
-# Example
+## Example
 #### Console logging
 ```c
 logger_initConsoleLogger(stderr);
@@ -86,5 +98,5 @@ LOG_INFO("multi logging");
 ```
 
 
-# License
+## License
 The MIT license
