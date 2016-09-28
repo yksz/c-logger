@@ -3,7 +3,7 @@
 #include "loggerconf.h"
 
 int main(int argc, char* argv[]) {
-    char filename[256] = "logger.conf";
+    char filename[256];
     if (argc <= 1) {
         printf("usage: %s <conf file>\n", argv[0]);
         return 1;

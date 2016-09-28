@@ -3,7 +3,7 @@
  #include <windows.h>
 #else
  #include <unistd.h>
- #define Sleep(x) usleep((x) * 1000)
+ #define Sleep(n) usleep((n) * 1000)
 #endif /* defined(_WIN32) || defined(_WIN64) */
 
 static const int kLoggingCount = 10;
