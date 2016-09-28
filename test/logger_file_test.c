@@ -14,6 +14,18 @@ static void cleanup(void)
     remove(kOutputFileName);
 }
 
+static int test_initFailed(void)
+{
+    int result;
+
+    /* when: configure the empty filename */
+    result = logger_initFileLogger("", 0, 0);
+
+    /* then: failed */
+    nu_assert_eq_int(0, result);
+    return 0;
+}
+
 static int test_fileLogger(void)
 {
     const char message[] = "message";
@@ -53,6 +65,7 @@ static int test_fileLogger(void)
 int main(int argc, char* argv[])
 {
     setup();
+    nu_run_test(test_initFailed);
     nu_run_test(test_fileLogger);
     cleanup();
     nu_report();
