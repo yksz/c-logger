@@ -8,10 +8,8 @@
 #else
  #include <pthread.h>
  #include <sys/time.h>
- #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-  #include <sys/syscall.h>
-  #include <unistd.h>
- #endif /* defined(__linux__) || (defined(__APPLE__) && defined(__MACH__)) */
+ #include <sys/syscall.h>
+ #include <unistd.h>
 #endif /* defined(_WIN32) || defined(_WIN64) */
 
 enum
@@ -105,7 +103,7 @@ static int gettimeofday(struct timeval* tv, void* tz)
     return 0;
 }
 
-struct tm* localtime_r(const time_t* timep, struct tm* result)
+static struct tm* localtime_r(const time_t* timep, struct tm* result)
 {
     localtime_s(result, timep);
     return result;
@@ -264,16 +262,13 @@ static int rotateLogFiles(void)
     return 1;
 }
 
-static long vflog(FILE* fp, struct timeval* timestamp, struct tm* calendar,
-        char levelc, long threadID, const char* file, int line, const char* fmt, va_list arg,
-        struct timeval* flushtime)
+static long vflog(FILE* fp, char levelc, const char* timestr, long threadID,
+        const char* file, int line, const char* fmt, va_list arg,
+        struct timeval* timestamp, struct timeval* flushtime)
 {
-    char timestr[32];
     int size;
     long totalsize = 0;
 
-    strftime(timestr, sizeof(timestr), "%y-%m-%d %H:%M:%S", calendar);
-    sprintf(timestr, "%s.%06ld", timestr, (long) timestamp->tv_usec);
     if ((size = fprintf(fp, "%c %s %ld %s:%d: ", levelc, timestr, threadID, file, line)) > 0) {
         totalsize += size;
     }
@@ -301,10 +296,17 @@ static char getLevelChar(enum LogLevel level)
         case LogLevel_WARN:  return 'W';
         case LogLevel_ERROR: return 'E';
         case LogLevel_FATAL: return 'F';
-        default:
-            assert(0 && "Unknown LogLevel");
-            return ' ';
+        default: return ' ';
     }
+}
+
+static void getTimeStr(struct timeval* timestamp, char* timestr, size_t len)
+{
+    struct tm calendar;
+
+    localtime_r(&timestamp->tv_sec, &calendar);
+    strftime(timestr, len, "%y-%m-%d %H:%M:%S", &calendar);
+    sprintf(&timestr[17], ".%06ld", (long) timestamp->tv_usec);
 }
 
 static int hasFlag(int flags, int flag)
@@ -315,9 +317,8 @@ static int hasFlag(int flags, int flag)
 void logger_log(enum LogLevel level, const char* file, int line, const char* fmt, ...)
 {
     struct timeval timestamp;
-    time_t sec;
-    struct tm calendar;
     char levelc;
+    char timestr[32];
     long threadID;
     va_list carg, farg;
 
@@ -330,22 +331,21 @@ void logger_log(enum LogLevel level, const char* file, int line, const char* fmt
         return;
     }
     gettimeofday(&timestamp, NULL);
-    sec = timestamp.tv_sec;
-    localtime_r(&sec, &calendar);
     levelc = getLevelChar(level);
+    getTimeStr(&timestamp, timestr, sizeof(timestr));
     threadID = getCurrentThreadID();
     lock();
     if (hasFlag(s_logger, kConsoleLogger)) {
         va_start(carg, fmt);
-        vflog(s_clog.output, &timestamp, &calendar,
-                levelc, threadID, file, line, fmt, carg, &s_clog.flushtime);
+        vflog(s_clog.output, levelc, timestr, threadID,
+                file, line, fmt, carg, &timestamp, &s_clog.flushtime);
         va_end(carg);
     }
     if (hasFlag(s_logger, kFileLogger)) {
         if (rotateLogFiles()) {
             va_start(farg, fmt);
-            s_flog.currentFileSize += vflog(s_flog.output, &timestamp, &calendar,
-                    levelc, threadID, file, line, fmt, farg, &s_flog.flushtime);
+            s_flog.currentFileSize += vflog(s_flog.output, levelc, timestr, threadID,
+                    file, line, fmt, farg, &timestamp, &s_flog.flushtime);
             va_end(farg);
         }
     }
