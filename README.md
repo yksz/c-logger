@@ -53,8 +53,8 @@ This following table comparing other libraries is benchmark results to log 1,000
 
 | threads  | c-logger | glog     |
 |:---------|---------:|---------:|
-| 1        | 0.953s   | 1.267s   |
-| 10       | 1.661s   | 1.183s   |
+| 1        | 0.832s   | 1.267s   |
+| 10       | 1.386s   | 1.183s   |
 
 **Benchmark environment**
 - Processor: Intel Core i3-4170 CPU @ 3.70GHz
