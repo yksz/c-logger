@@ -45,6 +45,9 @@ static int test_multiLogger(void)
     }
     dup2(fileno(redirect), 1);
 
+    /* and: auto flush on */
+    logger_autoFlush(10);
+
     /* when: initialize console logger */
     result = logger_initConsoleLogger(stdout);
 

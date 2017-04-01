@@ -53,6 +53,7 @@ static int test_consoleLogger(void)
     LOG_TRACE(message);
     LOG_DEBUG(message);
     LOG_INFO(message);
+    logger_flush();
 
     /* then: write only one line */
     if ((fp = fopen(kOutputFileName, "r")) == NULL) {

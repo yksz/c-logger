@@ -76,6 +76,19 @@ enum LogLevel logger_getLevel(void);
 int logger_isEnabled(enum LogLevel level);
 
 /**
+ * Flush automatically.
+ * Auto flush is off in default.
+ *
+ * @param[in] interval A fulsh interval in milliseconds. Switch off if 0 or a negative integer.
+ */
+void logger_autoFlush(long interval);
+
+/**
+ * Flush buffered log messages.
+ */
+void logger_flush(void);
+
+/**
  * Log a message.
  * Make sure to call one of the following initialize functions before starting logging.
  * - logger_initConsoleLogger()
