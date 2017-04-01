@@ -121,6 +121,8 @@ static void parseLine(char* line)
 
     if (strcmp(key, "level") == 0) {
         logger_setLevel(parseLevel(val));
+    } else if (strcmp(key, "autoFlush") == 0) {
+        logger_autoFlush(atol(val));
     } else if (strcmp(key, "logger") == 0) {
         if (strcmp(val, "console") == 0) {
             s_logger |= kConsoleLogger;
