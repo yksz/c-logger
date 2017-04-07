@@ -238,9 +238,10 @@ static char getLevelChar(enum LogLevel level)
 
 static void getTimestamp(const struct timeval* time, char* timestamp, size_t len)
 {
+    time_t sec = time->tv_sec; // a necessary variable to avoid a runtime error on Windows
     struct tm calendar;
 
-    localtime_r(&time->tv_sec, &calendar);
+    localtime_r(&sec, &calendar);
     strftime(timestamp, len, "%y-%m-%d %H:%M:%S", &calendar);
     sprintf(&timestamp[17], ".%06ld", (long) time->tv_usec);
 }
