@@ -34,6 +34,7 @@ s_flog;
 
 static int s_logger;
 
+static void reset(void);
 static void removeComments(char* s);
 static void trim(char* s);
 static void parseLine(char* line);
@@ -43,13 +44,13 @@ int logger_configure(const char* filename)
 {
     FILE* fp;
     char line[kMaxLineLen];
-    int ok = 1;
 
     if (filename == NULL) {
         assert(0 && "filename must not be NULL");
         return 0;
     }
 
+    reset();
     if ((fp = fopen(filename, "r")) == NULL) {
         fprintf(stderr, "ERROR: loggerconf: Failed to open file: `%s`\n", filename);
         return 0;
@@ -65,16 +66,26 @@ int logger_configure(const char* filename)
     fclose(fp);
 
     if (hasFlag(s_logger, kConsoleLogger)) {
-        ok &= logger_initConsoleLogger(s_clog.output);
+        if (!logger_initConsoleLogger(s_clog.output)) {
+            return 0;
+        }
     }
     if (hasFlag(s_logger, kFileLogger)) {
-        ok &= logger_initFileLogger(s_flog.filename, s_flog.maxFileSize, s_flog.maxBackupFiles);
+        if (!logger_initFileLogger(s_flog.filename, s_flog.maxFileSize, s_flog.maxBackupFiles)) {
+            return 0;
+        }
     }
-    if (s_logger == 0 || !ok) {
+    if (s_logger == 0) {
         return 0;
     }
-    s_logger = 0;
     return 1;
+}
+
+static void reset(void)
+{
+    s_logger = 0;
+    memset(&s_clog, 0, sizeof(s_clog));
+    memset(&s_flog, 0, sizeof(s_flog));
 }
 
 static void removeComments(char* s)
