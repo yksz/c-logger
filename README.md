@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/yksz/c-logger.svg?branch=master)](https://travis-ci.org/yksz/c-logger)
+
 # C logger
 
 ## Table of Contents
