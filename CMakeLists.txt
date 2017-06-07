@@ -5,8 +5,8 @@ set(CMAKE_C_FLAGS "-Wall -std=c89")
 set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG")
 set(CMAKE_C_FLAGS_DEBUG "-g")
 
-option(build_tests "Build all of own tests." OFF)
-option(build_examples "Build example programs." OFF)
+option(build_tests "Build all of own tests" OFF)
+option(build_examples "Build example programs" OFF)
 
 ### Library
 set(source_files
@@ -20,7 +20,6 @@ include_directories(
 add_library(${PROJECT_NAME} SHARED ${source_files})
 add_library(${PROJECT_NAME}_static STATIC ${source_files})
 set_target_properties(${PROJECT_NAME}_static PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
-set_target_properties(${PROJECT_NAME}_static PROPERTIES PREFIX "lib")
 
 ### Install
 install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
