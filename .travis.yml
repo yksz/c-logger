@@ -1,0 +1,13 @@
+sudo: required
+
+language: c
+
+compiler:
+  - gcc
+  - clang
+
+script:
+  - ./build.sh debug
+  - cd build_debug
+  - make
+  - make test
