@@ -4,6 +4,7 @@ language: c
 
 compiler:
   - gcc
+  - clang
 
 script:
   - ./build.sh debug
