@@ -246,7 +246,7 @@ static void getTimestamp(const struct timeval* time, char* timestamp, size_t len
     sprintf(&timestamp[17], ".%06ld", (long) time->tv_usec);
 }
 
-static char* getBackupFileName(const char* basename, unsigned char index)
+static char* newBackupFileName(const char* basename, unsigned char index)
 {
     int len = strlen(basename) + 4; /* <basename>.255 */
     char* backupname = (char*) malloc(sizeof(char) * len);
@@ -284,8 +284,9 @@ static int rotateLogFiles(void)
     }
     fclose(s_flog.output);
     for (i = (int) s_flog.maxBackupFiles; i > 0; i--) {
-        src = getBackupFileName(s_flog.filename, i - 1);
-        dst = getBackupFileName(s_flog.filename, i);
+        // NOTE: maybe it is better to use static memory on embedded system
+        src = newBackupFileName(s_flog.filename, i - 1);
+        dst = newBackupFileName(s_flog.filename, i);
         if (src != NULL && dst != NULL) {
             if (isFileExist(dst)) {
                 if (remove(dst) != 0) {
