@@ -284,7 +284,7 @@ static int rotateLogFiles(void)
     }
     fclose(s_flog.output);
     for (i = (int) s_flog.maxBackupFiles; i > 0; i--) {
-        // NOTE: maybe it is better to use static memory on embedded system
+        /* NOTE: maybe it is better to use static memory on embedded system */
         src = newBackupFileName(s_flog.filename, i - 1);
         dst = newBackupFileName(s_flog.filename, i);
         if (src != NULL && dst != NULL) {
