@@ -18,7 +18,7 @@ enum
     kConsoleLogger = 1 << 0,
     kFileLogger = 1 << 1,
 
-    kMaxFileNameLen = 256,
+    kMaxFileNameLen = 255, /* without null character */
     kDefaultMaxFileSize = 1048576L, /* 1 MB */
 };
 
@@ -34,7 +34,7 @@ s_clog;
 static struct
 {
     FILE* output;
-    char filename[kMaxFileNameLen];
+    char filename[kMaxFileNameLen + 1];
     long maxFileSize;
     unsigned char maxBackupFiles;
     long currentFileSize;
@@ -161,6 +161,10 @@ int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char 
         assert(0 && "filename must not be NULL");
         return 0;
     }
+    if (strlen(filename) > kMaxFileNameLen) {
+        assert(0 && "filename exceeds the maximum number of characters");
+        return 0;
+    }
 
     init();
     lock();
@@ -173,7 +177,7 @@ int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char 
         goto cleanup;
     }
     s_flog.currentFileSize = getFileSize(filename);
-    strncpy(s_flog.filename, filename, kMaxFileNameLen - 1);
+    strncpy(s_flog.filename, filename, sizeof(s_flog.filename));
     s_flog.maxFileSize = (maxFileSize > 0) ? maxFileSize : kDefaultMaxFileSize;
     s_flog.maxBackupFiles = maxBackupFiles;
     s_logger |= kFileLogger;
