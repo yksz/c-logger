@@ -252,16 +252,21 @@ static void getTimestamp(const struct timeval* time, char* timestamp, size_t len
 
 static char* newBackupFileName(const char* basename, unsigned char index)
 {
-    int len = strlen(basename) + 4; /* <basename>.255 */
-    char* backupname = (char*) malloc(sizeof(char) * len);
+    char* backupname; /* <basename>.255 */
+    char indexname[5];
+    size_t basenameLen = strlen(basename);
+    size_t indexnameLen = sizeof(indexname) - 1;
+    size_t backupnameLen = basenameLen + indexnameLen;
+
+    backupname = (char*) malloc(sizeof(char) * (backupnameLen + 1));
     if (backupname == NULL) {
         fprintf(stderr, "ERROR: logger: Out of memory\n");
         return NULL;
     }
-    if (index == 0) {
-        sprintf(backupname, "%.255s", basename);
-    } else {
-        sprintf(backupname, "%.255s.%d", basename, index);
+    strncpy(backupname, basename, basenameLen + 1);
+    if (index > 0) {
+        sprintf(indexname, ".%d", index);
+        strncat(backupname, indexname, indexnameLen);
     }
     return backupname;
 }
