@@ -6,19 +6,27 @@
 #if defined(_WIN32) || defined(_WIN64)
  #include <winsock2.h>
 #else
+ #include <arpa/inet.h>
  #include <pthread.h>
+ #include <sys/socket.h>
  #include <sys/time.h>
  #include <sys/syscall.h>
  #include <unistd.h>
+#endif /* defined(_WIN32) || defined(_WIN64) */
+
+#if defined(_WIN32) || defined(_WIN64)
+ #pragma comment(lib, "ws2_32.lib")
 #endif /* defined(_WIN32) || defined(_WIN64) */
 
 enum {
     /* Logger type */
     kConsoleLogger = 1 << 0,
     kFileLogger = 1 << 1,
+    kDataLogger = 1 << 2,
 
     kMaxFileNameLen = 255, /* without null character */
     kDefaultMaxFileSize = 1048576L, /* 1 MB */
+    kMaxDataLen = 512,
 };
 
 /* Console logger */
@@ -37,11 +45,23 @@ static struct {
     long flushedTime;
 } s_flog;
 
+/* Data logger */
+static struct {
+#if defined(_WIN32) || defined(_WIN64)
+    SOCKET fd;
+#else
+    int fd;
+#endif /* defined(_WIN32) || defined(_WIN64) */
+    struct sockaddr_in sockaddr;
+    char data[kMaxDataLen];
+} s_dlog = { -1, {0}, "" };
+
 static volatile int s_logger;
 static volatile LogLevel s_logLevel = LogLevel_INFO;
 static volatile long s_flushInterval = 0; /* msec, 0 is auto flush off */
 static volatile int s_initialized = 0; /* false */
 #if defined(_WIN32) || defined(_WIN64)
+static WSADATA s_wsadata;
 static CRITICAL_SECTION s_mutex;
 #else
 static pthread_mutex_t s_mutex;
@@ -53,6 +73,9 @@ static void init(void)
         return;
     }
 #if defined(_WIN32) || defined(_WIN64)
+    if (WSAStartup(MAKEWORD(2, 0), &s_wsadata) != 0) {
+        fprintf(stderr, "ERROR: logger: WSAStartup: %d\n", WSAGetLastError());
+    }
     InitializeCriticalSection(&s_mutex);
 #else
     pthread_mutex_init(&s_mutex, NULL);
@@ -176,6 +199,38 @@ int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char 
     s_flog.maxFileSize = (maxFileSize > 0) ? maxFileSize : kDefaultMaxFileSize;
     s_flog.maxBackupFiles = maxBackupFiles;
     s_logger |= kFileLogger;
+    ok = 1; /* true */
+cleanup:
+    unlock();
+    return ok;
+}
+
+int logger_initDataLogger(const char* address, unsigned int port)
+{
+    int ok = 0; /* false */
+
+    if (address == NULL) {
+        assert(0 && "address must not be NULL");
+        return 0;
+    }
+
+    init();
+    lock();
+    if (s_dlog.fd == -1) { /* init once */
+        s_dlog.fd = socket(AF_INET, SOCK_DGRAM, 0);
+        if (s_dlog.fd == -1) {
+            fprintf(stderr, "ERROR: logger: Failed to create a new FD\n");
+            goto cleanup;
+        }
+    }
+    s_dlog.sockaddr.sin_family = AF_INET;
+    s_dlog.sockaddr.sin_port = htons(port);
+#if defined(_WIN32) || defined(_WIN64)
+    s_dlog.sockaddr.sin_addr.S_un.S_addr = inet_addr(address);
+#else
+    s_dlog.sockaddr.sin_addr.s_addr = inet_addr(address);
+#endif /* defined(_WIN32) || defined(_WIN64) */
+    s_logger |= kDataLogger;
     ok = 1; /* true */
 cleanup:
     unlock();
@@ -371,3 +426,35 @@ void logger_log(LogLevel level, const char* file, int line, const char* fmt, ...
     unlock();
 }
 
+void logger_logData(const char* param, const char* unit, float value)
+{
+    if (param == NULL) {
+        assert(0 && "param must not be NULL");
+        return;
+    }
+    if (unit == NULL) {
+        assert(0 && "unit must not be NULL");
+        return;
+    }
+    if (s_logger == 0 || !s_initialized) {
+        assert(0 && "logger is not initialized");
+        return;
+    }
+
+    if (!logger_isEnabled(LogLevel_DEBUG)) {
+        return;
+    }
+    lock();
+    if (hasFlag(s_logger, kDataLogger)) {
+        sprintf(s_dlog.data,
+                "{\"kind\":\"parameter\""
+                ",\"type\":\"%s\""
+                ",\"unit\":\"%s\""
+                ",\"description\":\"\""
+                ",\"value\":\"%f\"}",
+                param, unit, value);
+        sendto(s_dlog.fd, s_dlog.data, strlen(s_dlog.data), 0,
+                (struct sockaddr*) &s_dlog.sockaddr, sizeof(s_dlog.sockaddr));
+    }
+    unlock();
+}

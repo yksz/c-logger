@@ -51,6 +51,17 @@ int logger_initConsoleLogger(FILE* output);
 int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char maxBackupFiles);
 
 /**
+ * Initialize the logger as a data logger.
+ * This logger sends data to a "royweb" server.
+ * If the address is NULL, return without doing anything.
+ *
+ * @param[in] address An IPv4/UDP address
+ * @param[in] port An UDP port
+ * @return Non-zero value upon success or 0 on error
+ */
+int logger_initDataLogger(const char* address, unsigned int port);
+
+/**
  * Set the log level.
  * Message levels lower than this value will be discarded.
  * The default log level is INFO.
@@ -100,6 +111,19 @@ void logger_flush(void);
  * @param[in] ... Additional arguments
  */
 void logger_log(LogLevel level, const char* file, int line, const char* fmt, ...);
+
+/**
+ * Log a parameter value.
+ * This function is used for debug. Thus this function does not log
+ * if the setting log level is greater than DEBUG.
+ * Make sure to call one of the following initialize functions before starting logging.
+ * - logger_initDataLogger()
+ *
+ * @param[in] param A parameter name
+ * @param[in] unit A parameter unit
+ * @param[in] value A parameter value
+ */
+void logger_logData(const char* param, const char* unit, float value);
 
 #ifdef __cplusplus
 } /* extern "C" */
