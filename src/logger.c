@@ -18,7 +18,7 @@ enum
     kConsoleLogger = 1 << 0,
     kFileLogger = 1 << 1,
 
-    kMaxFileNameLen = 256,
+    kMaxFileNameLen = 255, /* without null character */
     kDefaultMaxFileSize = 1048576L, /* 1 MB */
 };
 
@@ -34,7 +34,7 @@ s_clog;
 static struct
 {
     FILE* output;
-    char filename[kMaxFileNameLen];
+    char filename[kMaxFileNameLen + 1];
     long maxFileSize;
     unsigned char maxBackupFiles;
     long currentFileSize;
@@ -161,6 +161,10 @@ int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char 
         assert(0 && "filename must not be NULL");
         return 0;
     }
+    if (strlen(filename) > kMaxFileNameLen) {
+        assert(0 && "filename exceeds the maximum number of characters");
+        return 0;
+    }
 
     init();
     lock();
@@ -173,7 +177,7 @@ int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char 
         goto cleanup;
     }
     s_flog.currentFileSize = getFileSize(filename);
-    strncpy(s_flog.filename, filename, kMaxFileNameLen - 1);
+    strncpy(s_flog.filename, filename, sizeof(s_flog.filename));
     s_flog.maxFileSize = (maxFileSize > 0) ? maxFileSize : kDefaultMaxFileSize;
     s_flog.maxBackupFiles = maxBackupFiles;
     s_logger |= kFileLogger;
@@ -236,30 +240,30 @@ static char getLevelChar(enum LogLevel level)
     }
 }
 
-static void getTimestamp(const struct timeval* time, char* timestamp, size_t len)
+static void getTimestamp(const struct timeval* time, char* timestamp, size_t size)
 {
     time_t sec = time->tv_sec; /* a necessary variable to avoid a runtime error on Windows */
     struct tm calendar;
 
+    assert(size >= 25);
+
     localtime_r(&sec, &calendar);
-    strftime(timestamp, len, "%y-%m-%d %H:%M:%S", &calendar);
+    strftime(timestamp, size, "%y-%m-%d %H:%M:%S", &calendar);
     sprintf(&timestamp[17], ".%06ld", (long) time->tv_usec);
 }
 
-static char* newBackupFileName(const char* basename, unsigned char index)
+static void getBackupFileName(const char* basename, unsigned char index,
+        char* backupname, size_t size)
 {
-    int len = strlen(basename) + 4; /* <basename>.255 */
-    char* backupname = (char*) malloc(sizeof(char) * len);
-    if (backupname == NULL) {
-        fprintf(stderr, "ERROR: logger: Out of memory\n");
-        return NULL;
+    char indexname[5];
+
+    assert(size >= strlen(basename) + sizeof(indexname));
+
+    strncpy(backupname, basename, size);
+    if (index > 0) {
+        sprintf(indexname, ".%d", index);
+        strncat(backupname, indexname, strlen(indexname));
     }
-    if (index == 0) {
-        sprintf(backupname, "%.255s", basename);
-    } else {
-        sprintf(backupname, "%.255s.%d", basename, index);
-    }
-    return backupname;
 }
 
 static int isFileExist(const char* filename)
@@ -277,30 +281,26 @@ static int isFileExist(const char* filename)
 static int rotateLogFiles(void)
 {
     int i;
-    char *src, *dst;
+    /* backup filename: <filename>.xxx (xxx: 1-255) */
+    char src[kMaxFileNameLen + 5], dst[kMaxFileNameLen + 5]; /* with null character */
 
     if (s_flog.currentFileSize < s_flog.maxFileSize) {
         return s_flog.output != NULL;
     }
     fclose(s_flog.output);
     for (i = (int) s_flog.maxBackupFiles; i > 0; i--) {
-        /* NOTE: maybe it is better to use static memory on embedded system */
-        src = newBackupFileName(s_flog.filename, i - 1);
-        dst = newBackupFileName(s_flog.filename, i);
-        if (src != NULL && dst != NULL) {
-            if (isFileExist(dst)) {
-                if (remove(dst) != 0) {
-                    fprintf(stderr, "ERROR: logger: Failed to remove file: `%s`\n", dst);
-                }
-            }
-            if (isFileExist(src)) {
-                if (rename(src, dst) != 0) {
-                    fprintf(stderr, "ERROR: logger: Failed to rename file: `%s` -> `%s`\n", src, dst);
-                }
+        getBackupFileName(s_flog.filename, i - 1, src, sizeof(src));
+        getBackupFileName(s_flog.filename, i, dst, sizeof(dst));
+        if (isFileExist(dst)) {
+            if (remove(dst) != 0) {
+                fprintf(stderr, "ERROR: logger: Failed to remove file: `%s`\n", dst);
             }
         }
-        free(src);
-        free(dst);
+        if (isFileExist(src)) {
+            if (rename(src, dst) != 0) {
+                fprintf(stderr, "ERROR: logger: Failed to rename file: `%s` -> `%s`\n", src, dst);
+            }
+        }
     }
     s_flog.output = fopen(s_flog.filename, "a");
     if (s_flog.output == NULL) {
