@@ -6,8 +6,7 @@
 #include <string.h>
 #include "logger.h"
 
-enum
-{
+enum {
     /* Logger type */
     kConsoleLogger = 1 << 0,
     kFileLogger = 1 << 1,
@@ -17,20 +16,16 @@ enum
 };
 
 /* Console logger */
-static struct
-{
+static struct {
     FILE* output;
-}
-s_clog;
+} s_clog;
 
 /* File logger */
-static struct
-{
+static struct {
     char filename[kMaxFileNameLen];
     long maxFileSize;
     unsigned char maxBackupFiles;
-}
-s_flog;
+} s_flog;
 
 static int s_logger;
 
@@ -120,7 +115,7 @@ static void trim(char* s)
     s[len - i] = '\0';
 }
 
-static enum LogLevel parseLevel(const char* s);
+static LogLevel parseLevel(const char* s);
 
 static void parseLine(char* line)
 {
@@ -166,7 +161,7 @@ static void parseLine(char* line)
     }
 }
 
-static enum LogLevel parseLevel(const char* s)
+static LogLevel parseLevel(const char* s)
 {
     if (strcmp(s, "TRACE") == 0) {
         return LogLevel_TRACE;

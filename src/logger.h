@@ -21,15 +21,14 @@ extern "C" {
 #define LOG_ERROR(fmt, ...) logger_log(LogLevel_ERROR, __FILENAME__, __LINE__, fmt, ##__VA_ARGS__)
 #define LOG_FATAL(fmt, ...) logger_log(LogLevel_FATAL, __FILENAME__, __LINE__, fmt, ##__VA_ARGS__)
 
-enum LogLevel
-{
+typedef enum {
     LogLevel_TRACE,
     LogLevel_DEBUG,
     LogLevel_INFO,
     LogLevel_WARN,
     LogLevel_ERROR,
     LogLevel_FATAL,
-};
+} LogLevel;
 
 /**
  * Initialize the logger as a console logger.
@@ -58,7 +57,7 @@ int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char 
  *
  * @param[in] level A log level
  */
-void logger_setLevel(enum LogLevel level);
+void logger_setLevel(LogLevel level);
 
 /**
  * Get the log level that has been set.
@@ -66,14 +65,14 @@ void logger_setLevel(enum LogLevel level);
  *
  * @return The log level
  */
-enum LogLevel logger_getLevel(void);
+LogLevel logger_getLevel(void);
 
 /**
  * Check if a message of the level would actually be logged.
  *
  * @return Non-zero value if the log level is enabled
  */
-int logger_isEnabled(enum LogLevel level);
+int logger_isEnabled(LogLevel level);
 
 /**
  * Flush automatically.
@@ -100,7 +99,7 @@ void logger_flush(void);
  * @param[in] fmt A format string
  * @param[in] ... Additional arguments
  */
-void logger_log(enum LogLevel level, const char* file, int line, const char* fmt, ...);
+void logger_log(LogLevel level, const char* file, int line, const char* fmt, ...);
 
 #ifdef __cplusplus
 } /* extern "C" */

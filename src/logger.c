@@ -12,8 +12,7 @@
  #include <unistd.h>
 #endif /* defined(_WIN32) || defined(_WIN64) */
 
-enum
-{
+enum {
     /* Logger type */
     kConsoleLogger = 1 << 0,
     kFileLogger = 1 << 1,
@@ -23,27 +22,23 @@ enum
 };
 
 /* Console logger */
-static struct
-{
+static struct {
     FILE* output;
     long flushedTime;
-}
-s_clog;
+} s_clog;
 
 /* File logger */
-static struct
-{
+static struct {
     FILE* output;
     char filename[kMaxFileNameLen + 1];
     long maxFileSize;
     unsigned char maxBackupFiles;
     long currentFileSize;
     long flushedTime;
-}
-s_flog;
+} s_flog;
 
 static volatile int s_logger;
-static volatile enum LogLevel s_logLevel = LogLevel_INFO;
+static volatile LogLevel s_logLevel = LogLevel_INFO;
 static volatile long s_flushInterval = 0; /* msec, 0 is auto flush off */
 static volatile int s_initialized = 0; /* false */
 #if defined(_WIN32) || defined(_WIN64)
@@ -187,17 +182,17 @@ cleanup:
     return ok;
 }
 
-void logger_setLevel(enum LogLevel level)
+void logger_setLevel(LogLevel level)
 {
     s_logLevel = level;
 }
 
-enum LogLevel logger_getLevel(void)
+LogLevel logger_getLevel(void)
 {
     return s_logLevel;
 }
 
-int logger_isEnabled(enum LogLevel level)
+int logger_isEnabled(LogLevel level)
 {
     return s_logLevel <= level;
 }
@@ -227,7 +222,7 @@ void logger_flush()
     }
 }
 
-static char getLevelChar(enum LogLevel level)
+static char getLevelChar(LogLevel level)
 {
     switch (level) {
         case LogLevel_TRACE: return 'T';
@@ -336,7 +331,7 @@ static long vflog(FILE* fp, char levelc, const char* timestamp, long threadID,
     return totalsize;
 }
 
-void logger_log(enum LogLevel level, const char* file, int line, const char* fmt, ...)
+void logger_log(LogLevel level, const char* file, int line, const char* fmt, ...)
 {
     struct timeval now;
     long currentTime; /* milliseconds */
