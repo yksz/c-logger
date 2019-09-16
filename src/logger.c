@@ -19,6 +19,9 @@ enum {
 
     kMaxFileNameLen = 255, /* without null character */
     kDefaultMaxFileSize = 1048576L, /* 1 MB */
+
+    kTrue = 1,
+    kFalse = 0,
 };
 
 /* Console logger */
@@ -40,7 +43,7 @@ static struct {
 static volatile int s_logger;
 static volatile LogLevel s_logLevel = LogLevel_INFO;
 static volatile long s_flushInterval = 0; /* msec, 0 is auto flush off */
-static volatile int s_initialized = 0; /* false */
+static volatile int s_initialized = kFalse;
 #if defined(_WIN32) || defined(_WIN64)
 static CRITICAL_SECTION s_mutex;
 #else
@@ -57,7 +60,7 @@ static void init(void)
 #else
     pthread_mutex_init(&s_mutex, NULL);
 #endif /* defined(_WIN32) || defined(_WIN64) */
-    s_initialized = 1; /* true */
+    s_initialized = kTrue;
 }
 
 static void lock(void)
@@ -123,7 +126,7 @@ int logger_initConsoleLogger(FILE* output)
     output = (output != NULL) ? output : stdout;
     if (output != stdout && output != stderr) {
         assert(0 && "output must be stdout or stderr");
-        return 0;
+        return kFalse;
     }
 
     init();
@@ -131,7 +134,7 @@ int logger_initConsoleLogger(FILE* output)
     s_clog.output = output;
     s_logger |= kConsoleLogger;
     unlock();
-    return 1;
+    return kTrue;
 }
 
 static long getFileSize(const char* filename)
@@ -150,15 +153,15 @@ static long getFileSize(const char* filename)
 
 int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char maxBackupFiles)
 {
-    int ok = 0; /* false */
+    int ok = kFalse;
 
     if (filename == NULL) {
         assert(0 && "filename must not be NULL");
-        return 0;
+        return kFalse;
     }
     if (strlen(filename) > kMaxFileNameLen) {
         assert(0 && "filename exceeds the maximum number of characters");
-        return 0;
+        return kFalse;
     }
 
     init();
@@ -176,7 +179,7 @@ int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char 
     s_flog.maxFileSize = (maxFileSize > 0) ? maxFileSize : kDefaultMaxFileSize;
     s_flog.maxBackupFiles = maxBackupFiles;
     s_logger |= kFileLogger;
-    ok = 1; /* true */
+    ok = kTrue;
 cleanup:
     unlock();
     return ok;
@@ -266,10 +269,10 @@ static int isFileExist(const char* filename)
     FILE* fp;
 
     if ((fp = fopen(filename, "r")) == NULL) {
-        return 0;
+        return kFalse;
     } else {
         fclose(fp);
-        return 1;
+        return kTrue;
     }
 }
 
@@ -300,10 +303,10 @@ static int rotateLogFiles(void)
     s_flog.output = fopen(s_flog.filename, "a");
     if (s_flog.output == NULL) {
         fprintf(stderr, "ERROR: logger: Failed to open file: `%s`\n", s_flog.filename);
-        return 0;
+        return kFalse;
     }
     s_flog.currentFileSize = getFileSize(s_flog.filename);
-    return 1;
+    return kTrue;
 }
 
 static long vflog(FILE* fp, char levelc, const char* timestamp, long threadID,

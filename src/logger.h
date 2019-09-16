@@ -1,12 +1,12 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
+#include <stdio.h>
+#include <string.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-
-#include <stdio.h>
-#include <string.h>
 
 #if defined(_WIN32) || defined(_WIN64)
  #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
