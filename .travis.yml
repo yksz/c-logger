@@ -11,3 +11,7 @@ script:
   - cd build_debug
   - make
   - make test
+
+branches:
+  except:
+    - /^test.*$/
