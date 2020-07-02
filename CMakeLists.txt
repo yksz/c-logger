@@ -7,6 +7,7 @@ set(CMAKE_C_FLAGS_DEBUG "-g")
 
 option(build_tests "Build all of own tests" OFF)
 option(build_examples "Build example programs" OFF)
+option(build_docs "Build doxygen documentation" OFF)
 
 ### Library
 set(source_files
@@ -27,7 +28,9 @@ file(GLOB header_files src/*.h)
 install(FILES ${header_files} DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
 ### Document
-add_custom_target(doc COMMAND "doxygen" "${PROJECT_SOURCE_DIR}/doc/Doxyfile")
+if(build_docs)
+    add_custom_target(doc COMMAND "doxygen" "${PROJECT_SOURCE_DIR}/doc/Doxyfile")
+endif()
 
 ### Test
 if(build_tests)
