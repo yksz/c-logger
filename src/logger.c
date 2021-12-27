@@ -24,7 +24,7 @@ enum {
 /* Console logger */
 static struct {
     FILE* output;
-    long flushedTime;
+    unsigned long long flushedTime;
 } s_clog;
 
 /* File logger */
@@ -34,7 +34,7 @@ static struct {
     long maxFileSize;
     unsigned char maxBackupFiles;
     long currentFileSize;
-    long flushedTime;
+    unsigned long long flushedTime;
 } s_flog;
 
 static volatile int s_logger;
@@ -308,7 +308,7 @@ static int rotateLogFiles(void)
 
 static long vflog(FILE* fp, char levelc, const char* timestamp, long threadID,
         const char* file, int line, const char* fmt, va_list arg,
-        long currentTime, long* flushedTime)
+        unsigned long long currentTime, unsigned long long* flushedTime)
 {
     int size;
     long totalsize = 0;
@@ -334,7 +334,7 @@ static long vflog(FILE* fp, char levelc, const char* timestamp, long threadID,
 void logger_log(LogLevel level, const char* file, int line, const char* fmt, ...)
 {
     struct timeval now;
-    long currentTime; /* milliseconds */
+    unsigned long long currentTime; /* milliseconds */
     char levelc;
     char timestamp[32];
     long threadID;
