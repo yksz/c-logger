@@ -11,12 +11,17 @@
  #include <sys/syscall.h>
  #include <unistd.h>
 #endif /* defined(_WIN32) || defined(_WIN64) */
+#if defined(__ANDROID__)
+ #include <android/log.h>
+#endif
 
 enum {
     /* Logger type */
     kConsoleLogger = 1 << 0,
     kFileLogger = 1 << 1,
+    kAndroidLogger = 1 << 2,
 
+    kMaxAndroidTagLen = 63, /* without null character */
     kMaxFileNameLen = 255, /* without null character */
     kDefaultMaxFileSize = 1048576L, /* 1 MB */
 };
@@ -36,6 +41,14 @@ static struct {
     long currentFileSize;
     unsigned long long flushedTime;
 } s_flog;
+
+#if defined(__ANDROID__)
+/* Android logger */
+static struct {
+    int hasTag;
+    char tag[kMaxAndroidTagLen + 1];
+} s_androidlog;
+#endif
 
 static volatile int s_logger;
 static volatile LogLevel s_logLevel = LogLevel_INFO;
@@ -182,6 +195,26 @@ cleanup:
     return ok;
 }
 
+int logger_initAndroid(const char* tag)
+{
+#if defined(__ANDROID__)
+    init();
+    lock();
+    if (tag == NULL) {
+        s_androidlog.tag[0] = 0;
+        s_androidlog.hasTag = 0;
+    } else {
+        strncpy(s_androidlog.tag, tag, sizeof(s_androidlog.tag));
+        s_androidlog.hasTag = 1;
+    }
+    s_logger |= kAndroidLogger;
+    unlock();
+    return 1;
+#else
+    return 0;
+#endif
+}
+
 void logger_setLevel(LogLevel level)
 {
     s_logLevel = level;
@@ -220,6 +253,7 @@ void logger_flush()
     if (hasFlag(s_logger, kFileLogger)) {
         fflush(s_flog.output);
     }
+    /* note: Android has no flush() function. */
 }
 
 static char getLevelChar(LogLevel level)
@@ -234,6 +268,21 @@ static char getLevelChar(LogLevel level)
         default: return ' ';
     }
 }
+
+#if defined(__ANDROID__)
+static int getAndroidPriority(LogLevel level)
+{
+    switch (level) {
+        case LogLevel_TRACE: return ANDROID_LOG_VERBOSE;
+        case LogLevel_DEBUG: return ANDROID_LOG_DEBUG;
+        case LogLevel_INFO:  return ANDROID_LOG_INFO;
+        case LogLevel_WARN:  return ANDROID_LOG_WARN;
+        case LogLevel_ERROR: return ANDROID_LOG_ERROR;
+        case LogLevel_FATAL: return ANDROID_LOG_FATAL;
+        default: return ANDROID_LOG_DEFAULT;
+    }
+}
+#endif
 
 static void getTimestamp(const struct timeval* time, char* timestamp, size_t size)
 {
@@ -331,6 +380,38 @@ static long vflog(FILE* fp, char levelc, const char* timestamp, long threadID,
     return totalsize;
 }
 
+#if defined(__ANDROID__)
+static long vandroidlog(LogLevel level, const char* file, int line, const char* fmt, va_list arg)
+{
+    int size;
+    long totalsize = 0;
+    int prio = getAndroidPriority(level);
+    const char* tag;
+    if (s_androidlog.hasTag) {
+        tag = s_androidlog.tag;
+    } else {
+        tag = NULL;
+    }
+
+    /* Maximum Android log message size is "implementation-specific (1023 bytes)"
+       per <android/log.h>, or 4096 bytes in other online sources. */
+    char buf_user[4096];
+    char buf_message[4096];
+
+    /* Android logging uses a concept of "message" which is the same as
+       a c-logger log statement. It is not just an output stream. So we have to
+       assemble all part of the c-logger log statement into a single log
+       message for Android. */
+    vsnprintf(buf_user, sizeof(buf_user), fmt, arg);
+    snprintf(buf_message, sizeof(buf_message), "%s:%d: %s", file, line, buf_user);
+
+    if ((size = __android_log_write(prio, tag, buf_message)) > 0) {
+        totalsize += size;
+    }
+    return totalsize;
+}
+#endif
+
 void logger_log(LogLevel level, const char* file, int line, const char* fmt, ...)
 {
     struct timeval now;
@@ -368,6 +449,13 @@ void logger_log(LogLevel level, const char* file, int line, const char* fmt, ...
             va_end(farg);
         }
     }
+#if defined(__ANDROID__)
+    if (hasFlag(s_logger, kAndroidLogger)) {
+        va_start(carg, fmt);
+        vandroidlog(level, file, line, fmt, carg);
+        va_end(carg);
+    }
+#endif
     unlock();
 }
 

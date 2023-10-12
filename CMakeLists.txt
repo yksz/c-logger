@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.11)
+cmake_minimum_required(VERSION 2.8.12)
 project(logger C)
 
 set(CMAKE_C_FLAGS "-Wall -std=c89")
@@ -18,6 +18,12 @@ set(source_files
 add_library(${PROJECT_NAME} SHARED ${source_files})
 add_library(${PROJECT_NAME}_static STATIC ${source_files})
 set_target_properties(${PROJECT_NAME}_static PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
+
+# Android NDK log library
+if(ANDROID)
+    target_link_libraries(${PROJECT_NAME}        PRIVATE log)
+    target_link_libraries(${PROJECT_NAME}_static INTERFACE log)
+endif()
 
 # Export the include directory
 target_include_directories(
