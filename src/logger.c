@@ -371,3 +371,15 @@ void logger_log(LogLevel level, const char* file, int line, const char* fmt, ...
     unlock();
 }
 
+/**
+ * @brief 
+ * 
+ * deinit logger
+ * 
+ * @return int 
+ */
+void logger_exitFileLogger()
+{
+    if(s_flog.output)
+        fclose(s_flog.output);
+}
