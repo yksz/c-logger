@@ -60,6 +60,24 @@ void logger_exitFileLogger();
 int logger_initFileLogger(const char* filename, long maxFileSize, unsigned char maxBackupFiles);
 
 /**
+ * Initialize the logger as an Android logger viewable in Logcat.
+ *
+ * The tag usually identifies the class or activity where the log
+ * call occurs, like "MyActivity". If the tag is NULL, the Android
+ * default tag (the value of getprogname()) will be used. The default
+ * tag truncated to the maximum log message size, though appropriate
+ * tags should be much smaller.
+ *
+ * Support for Android requires that the project was built using
+ * the Android NDK toolchain. An error (0) will be returned if
+ * Android is not supported.
+ *
+ * @param[in] tag The source of a log message.
+ * @return Non-zero value upon success or 0 on error
+ */
+int logger_initAndroid(const char* tag);
+
+/**
  * Set the log level.
  * Message levels lower than this value will be discarded.
  * The default log level is INFO.
@@ -101,6 +119,7 @@ void logger_flush(void);
  * Make sure to call one of the following initialize functions before starting logging.
  * - logger_initConsoleLogger()
  * - logger_initFileLogger()
+ * - logger_initAndroid()
  *
  * @param[in] level A log level
  * @param[in] file A file name string
