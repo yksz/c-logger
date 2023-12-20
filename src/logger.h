@@ -40,6 +40,15 @@ typedef enum {
 int logger_initConsoleLogger(FILE* output);
 
 /**
+ * @brief 
+ * 
+ * deinit logger
+ * 
+ * @return int 
+ */
+void logger_exitFileLogger();
+
+/**
  * Initialize the logger as a file logger.
  * If the filename is NULL, return without doing anything.
  *

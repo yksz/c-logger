@@ -371,3 +371,8 @@ void logger_log(LogLevel level, const char* file, int line, const char* fmt, ...
     unlock();
 }
 
+void logger_exitFileLogger()
+{
+    if (s_flog.output)
+        fclose(s_flog.output);
+}
